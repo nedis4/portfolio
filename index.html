@@ -303,7 +303,7 @@ a.hd-box, button.hd-box { cursor: pointer; }
 .work-projects { min-width: 0; }
 .work-intro-stamp { display: flex; gap: 16px; align-items: center; margin: -18px 0 30px; }
 
-.project { padding: 48px 0 34px; border-top: 1.5px dashed var(--rule); scroll-margin-top: 86px; }
+.project { padding: 40px 0 28px; border-top: 1.5px dashed var(--rule); scroll-margin-top: 86px; }
 .project:first-child { border-top: none; padding-top: 12px; }
 .project-head { display: grid; grid-template-columns: 92px 1fr auto; gap: 22px; align-items: start; margin-bottom: 26px; }
 .numbubble { position: relative; width: 76px; height: 76px; }
@@ -1388,16 +1388,27 @@ window.BIO = BIO;
     }
     var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    return function update() {
-      var r = figure.getBoundingClientRect();
-      var vh = window.innerHeight;
-      if (reduced) return;
-      if (r.top < vh * 1.5 && r.bottom > -vh * 0.5) preload();
-      var T = parseFloat(getComputedStyle(sticky).top) || 0;
-      var travel = Math.max(1, figure.offsetHeight - sticky.offsetHeight);
-      var p = Math.min(1, Math.max(0, (T - r.top) / travel));
-      want = Math.round(p * (n - 1));
-      if (want !== cur) swap();
+    // Cache the constants (sticky offset + scroll travel). The per-frame
+    // scrub previously called getComputedStyle() and read offsetHeight twice
+    // EVERY frame — each forces a style/layout flush and was the main drag on
+    // smoothness. These only change on resize, so measure there instead.
+    var stickyTopPx = 0, travel = 1;
+    function measure() {
+      stickyTopPx = parseFloat(getComputedStyle(sticky).top) || 0;
+      travel = Math.max(1, figure.offsetHeight - sticky.offsetHeight);
+    }
+    measure();
+    return {
+      measure: measure,
+      update: function () {
+        if (reduced) return;
+        var r = figure.getBoundingClientRect();
+        var vh = window.innerHeight;
+        if (r.top < vh * 1.5 && r.bottom > -vh * 0.5) preload();
+        var p = Math.min(1, Math.max(0, (stickyTopPx - r.top) / travel));
+        want = Math.round(p * (n - 1));
+        if (want !== cur) swap();
+      }
     };
   }
 
@@ -1409,6 +1420,11 @@ window.BIO = BIO;
     var pnav = document.getElementById("pnav");
     var pnavItems = [].slice.call(document.querySelectorAll("[data-pnav]"));
     var hls = [].slice.call(document.querySelectorAll(".hyperlapse")).map(initHyperlapse);
+    // cache element refs once — getElementById on every scroll frame (4
+    // sections + work + 6 projects) was needless per-frame churn.
+    var sectionEls = SECTIONS.map(function (s) { return document.getElementById(s.id); });
+    var workEl = document.getElementById("work");
+    var projectEls = PROJECTS.map(function (p) { return document.getElementById(p.id); });
 
     // reveal + draw-on-scroll
     var io = new IntersectionObserver(function (entries) {
@@ -1452,40 +1468,43 @@ window.BIO = BIO;
       if (ticking) return; ticking = true;
       requestAnimationFrame(function () {
         ticking = false;
-        var h = document.documentElement;
-        var max = h.scrollHeight - h.clientHeight;
-        var sc = h.scrollTop || document.body.scrollTop;
-        var p = max > 0 ? sc / max : 0;
-        if (progPath) progPath.style.strokeDashoffset = String(1 - p);
-        if (topbarEl) topbarEl.classList.toggle("is-stuck", sc > 10);
+        var doc = document.documentElement;
+        var sc = window.scrollY || doc.scrollTop || 0;
+        var vh = window.innerHeight;
+        var max = doc.scrollHeight - doc.clientHeight;
 
-        // scroll-spy
+        // ── reads (cached refs) ──
         var y = sc + 130, curId = SECTIONS[0].id;
-        SECTIONS.forEach(function (s) {
-          var el = document.getElementById(s.id);
-          if (el && el.offsetTop <= y) curId = s.id;
-        });
-        spyLinks.forEach(function (a) { a.classList.toggle("active", a.getAttribute("data-spy") === curId); });
-
-        // project nav visibility + active
-        var workEl = document.getElementById("work");
-        if (workEl && pnav) {
-          var r = workEl.getBoundingClientRect(), vh = window.innerHeight;
-          pnav.classList.toggle("is-visible", r.top < vh * 0.5 && r.bottom > vh * 0.4);
-          var target = vh * 0.4, best = PROJECTS[0] && PROJECTS[0].id, bestD = Infinity;
-          PROJECTS.forEach(function (pr) {
-            var el = document.getElementById(pr.id);
-            if (!el) return;
-            var rr = el.getBoundingClientRect(), dist = Math.abs(rr.top - target);
-            if (rr.top <= target + 220 && dist < bestD) { bestD = dist; best = pr.id; }
-          });
-          pnavItems.forEach(function (li) { li.classList.toggle("is-active", li.getAttribute("data-pnav") === best); });
+        for (var i = 0; i < sectionEls.length; i++) {
+          if (sectionEls[i] && sectionEls[i].offsetTop <= y) curId = SECTIONS[i].id;
         }
-        hls.forEach(function (fn) { fn(); });
+        var workRect = workEl ? workEl.getBoundingClientRect() : null;
+        var bestId = PROJECTS[0] && PROJECTS[0].id;
+        if (workRect) {
+          var target = vh * 0.4, bestD = Infinity;
+          for (var j = 0; j < projectEls.length; j++) {
+            var el = projectEls[j]; if (!el) continue;
+            var rt = el.getBoundingClientRect().top, dist = Math.abs(rt - target);
+            if (rt <= target + 220 && dist < bestD) { bestD = dist; bestId = PROJECTS[j].id; }
+          }
+        }
+
+        // ── writes ──
+        if (progPath) progPath.style.strokeDashoffset = String(1 - (max > 0 ? sc / max : 0));
+        if (topbarEl) topbarEl.classList.toggle("is-stuck", sc > 10);
+        spyLinks.forEach(function (a) { a.classList.toggle("active", a.getAttribute("data-spy") === curId); });
+        if (workRect && pnav) {
+          pnav.classList.toggle("is-visible", workRect.top < vh * 0.5 && workRect.bottom > vh * 0.4);
+          pnavItems.forEach(function (li) { li.classList.toggle("is-active", li.getAttribute("data-pnav") === bestId); });
+        }
+        for (var hi = 0; hi < hls.length; hi++) hls[hi].update();
       });
     }
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
+    window.addEventListener("resize", function () {
+      for (var i = 0; i < hls.length; i++) hls[i].measure();
+      onScroll();
+    });
     onScroll();
   }
 
