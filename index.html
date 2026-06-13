@@ -300,10 +300,15 @@ a.hd-box, button.hd-box { cursor: pointer; }
 /* ─── Work / projects ────────────────────────────────────────────── */
 .work-grid { display: grid; grid-template-columns: 1fr 150px; gap: 36px; align-items: start; }
 .work-projects { min-width: 0; }
-.work-intro-stamp { display: flex; gap: 16px; align-items: center; margin: -18px 0 12px; }
+#work .section-head { margin-bottom: 14px; }
+.work-intro-stamp { display: flex; gap: 12px; align-items: center; margin: 0 0 8px; }
+/* constrain the bracket doodle (an unconstrained inline SVG defaults to 300px
+   and was overflowing mobile) and let the note shrink + wrap */
+.work-intro-stamp .doodle { width: 16px; height: 50px; flex-shrink: 0; }
+.work-intro-stamp .t-hand { font-size: clamp(17px, 2.3vw, 21px); line-height: 1.25; min-width: 0; }
 
 .project { padding: 56px 0 40px; border-top: 1.5px dashed var(--rule); scroll-margin-top: 86px; }
-.project:first-child { border-top: none; padding-top: 2px; }
+.project:first-child { border-top: none; padding-top: 0; }
 .project-head { display: grid; grid-template-columns: 92px 1fr auto; gap: 22px; align-items: start; margin-bottom: 26px; }
 .numbubble { position: relative; width: 76px; height: 76px; }
 .numbubble svg { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -411,7 +416,9 @@ a.hd-box, button.hd-box { cursor: pointer; }
   object-fit: cover;
   display: block;
 }
-.hl-note { position: absolute; top: -34px; right: 4px; display: flex; align-items: center; gap: 6px; z-index: 3; }
+/* note sits INSIDE the stage's top-right (an opaque sticker) so it can never
+   be clipped by the sticky header above the animation */
+.hl-note { position: absolute; top: 10px; right: 10px; display: flex; align-items: center; gap: 6px; z-index: 3; background: var(--paper); border: 1.4px solid var(--ink); border-radius: 10px 12px 9px 11px; padding: 3px 10px; }
 .hl-note .doodle { width: 26px; height: 32px; }
 .hl-counter { font-variant-numeric: tabular-nums; }
 
@@ -492,9 +499,9 @@ a.hd-box, button.hd-box { cursor: pointer; }
 .skills-grid li:hover { color: var(--red); border-color: var(--red); rotate: -1deg; }
 
 .lang-list { display: grid; gap: 14px; max-width: 560px; }
-.lang-row { display: grid; grid-template-columns: 110px 1fr; gap: 16px; align-items: center; }
+.lang-row { display: grid; grid-template-columns: 110px 1fr; gap: 2px 16px; align-items: center; }
 .lang-row .name { font-weight: 600; font-size: 15px; }
-.lang-row .level { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); letter-spacing: 0.08em; grid-column: 2; margin-top: 3px; }
+.lang-row .level { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); letter-spacing: 0.08em; grid-column: 2; margin-top: 0; }
 .lang-bar {
   position: relative;
   height: 12px;
@@ -859,8 +866,10 @@ const BIO = {
   name: "Mariya Benovska",
   role: "Architect MA · Registered architect AKNW",
   location: "Aachen, Germany",
-  email: "mariyabenovska@gmail.com",
-  phone: "+49 176 36317884",
+  // base64-encoded so the plain values never sit in the static HTML source;
+  // assembled at runtime in app.js via b64().
+  email64: "bWFyaXlhYmVub3Zza2FAZ21haWwuY29t",
+  phone64: "KzQ5IDE3NiAzNjMxNzg4NA==",
   linkedin: "linkedin.com/in/mariya-benovska",
   pitch:
     "Architect working between technical precision and spatial quality — currently leading facade design and BIM coordination on an adaptive reuse project in Bochum.",
@@ -930,6 +939,12 @@ window.BIO = BIO;
   var PROJECTS = window.PROJECTS || [];
   var BIO = window.BIO || {};
   var YEAR = new Date().getFullYear();
+
+  // Contact details are base64 in data.js and assembled here at runtime, so
+  // the plain email/phone never appear in the static HTML that address-
+  // harvesting bots scrape. The links are assembled on click (see wire()).
+  function b64(s) { try { return atob(s); } catch (e) { return s || ""; } }
+  var EMAIL = b64(BIO.email64), PHONE = b64(BIO.phone64);
 
   var SECTIONS = [
     { id: "about", label: "About" },
@@ -1010,9 +1025,13 @@ window.BIO = BIO;
     },
     // vertical wavy CV timeline
     spine: function () {
-      return '<svg class="doodle draw doodle--ink doodle--thin" viewBox="0 0 12 100" ' +
+      // No "draw" class: a normalized-dash path on a non-uniformly stretched
+      // viewBox under-draws and stops partway (leaving lower CV dots
+      // unconnected). Render it complete + static; a gentle wobble stays near
+      // the dots' x so the line threads every year.
+      return '<svg class="doodle doodle--ink doodle--thin" viewBox="0 0 12 100" ' +
         'preserveAspectRatio="none" aria-hidden="true">' +
-        '<path pathLength="1" d="M6 2 C 3 18, 9 34, 6 50 C 3 66, 9 84, 6 98"/></svg>';
+        '<path d="M6 1 C 4.6 18, 7.4 34, 6 50 C 4.6 66, 7.4 84, 6 99"/></svg>';
     },
     // little marginalia star/asterisk
     star: function () {
@@ -1085,7 +1104,7 @@ window.BIO = BIO;
       SECTIONS.map(function (s) {
         return '<a href="#' + s.id + '" data-spy="' + s.id + '">' + esc(s.label) + '</a>';
       }).join("") +
-      '<a class="pill hd-box wiggle" href="mailto:' + attr(BIO.email) + '">Get in touch ↗</a>' +
+      '<a class="pill hd-box wiggle js-mail" href="#">Get in touch ↗</a>' +
       '</nav></header>';
   }
 
@@ -1106,8 +1125,8 @@ window.BIO = BIO;
       'leading facade and roof design on an adaptive-reuse project in Bochum.</p>' +
 
       '<div class="facts reveal" style="--d:220ms">' +
-      chip("mailto:" + BIO.email, BIO.email) +
-      chip("tel:" + String(BIO.phone).replace(/\s/g, ""), BIO.phone) +
+      '<a class="hd-box wiggle js-mail" href="#">' + esc(EMAIL) + '</a>' +
+      '<a class="hd-box wiggle js-tel" href="#">' + esc(PHONE) + '</a>' +
       chip("https://" + BIO.linkedin, "LinkedIn ↗", true) +
       '<span class="hd-box">' + esc(BIO.location) + '</span>' +
       '</div>' +
@@ -1270,10 +1289,10 @@ window.BIO = BIO;
 
   function contact() {
     var rows = [
-      ["Email", '<a href="mailto:' + attr(BIO.email) + '">' + esc(BIO.email) + '</a>', BIO.email, "email"],
-      ["Phone", '<a href="tel:' + attr(String(BIO.phone).replace(/\s/g, "")) + '">' + esc(BIO.phone) + '</a>', BIO.phone, "phone"],
-      ["LinkedIn", '<a href="https://' + attr(BIO.linkedin) + '" target="_blank" rel="noreferrer">mariya-benovska ↗</a>', "", ""],
-      ["Studio", '<span>Aachen · NRW · Germany</span>', "", ""],
+      ["Email", '<a href="#" class="js-mail">' + esc(EMAIL) + '</a>', "email"],
+      ["Phone", '<a href="#" class="js-tel">' + esc(PHONE) + '</a>', "phone"],
+      ["LinkedIn", '<a href="https://' + attr(BIO.linkedin) + '" target="_blank" rel="noreferrer">mariya-benovska ↗</a>', ""],
+      ["Studio", '<span>Aachen · NRW · Germany</span>', ""],
     ];
     return '<section class="section contact" id="contact">' +
       '<div class="section-head"><span class="meta t-mono-sm">§ 04 · Contact</span>' +
@@ -1283,12 +1302,12 @@ window.BIO = BIO;
       '<p class="pitch reveal" style="--d:90ms">If anything here resonates with the kind of work you’re hiring for, ' +
       'I’d be glad to hear from you. Available for full-time roles, freelance facade detailing and BIM coordination engagements.</p>' +
       '<div class="contact-cta reveal" style="--d:160ms">' +
-      '<a class="hd-box wiggle" href="mailto:' + attr(BIO.email) + '">Write to me ↗</a>' +
+      '<a class="hd-box wiggle js-mail" href="#">Write to me ↗</a>' +
       D.arrow() + '<span class="t-hand">I reply within a day or two</span></div></div>' +
       '<div class="contact-list">' +
       rows.map(function (r) {
         var copy = r[2]
-          ? '<span class="copy" data-copy="' + attr(r[2]) + '" data-k="' + attr(r[3]) + '">copy</span>'
+          ? '<span class="copy" data-ck="' + attr(r[2]) + '">copy</span>'
           : '<span class="copy">↗</span>';
         return '<div class="contact-row reveal"><span class="k">' + esc(r[0]) + '</span>' +
           '<span class="v">' + r[1] + '</span>' + copy + '</div>';
@@ -1406,11 +1425,19 @@ window.BIO = BIO;
       });
     });
 
-    // copy buttons
-    document.querySelectorAll("[data-copy]").forEach(function (b) {
+    // contact links assembled on click → no clickable address sits in the DOM
+    // (scheme split so the literal token isn't greppable in the source either)
+    document.querySelectorAll(".js-mail").forEach(function (a) {
+      a.addEventListener("click", function (e) { e.preventDefault(); location.href = "mai" + "lto:" + EMAIL; });
+    });
+    document.querySelectorAll(".js-tel").forEach(function (a) {
+      a.addEventListener("click", function (e) { e.preventDefault(); location.href = "te" + "l:" + PHONE.replace(/\s/g, ""); });
+    });
+    // copy buttons (value assembled from key, never stored in a DOM attribute)
+    document.querySelectorAll("[data-ck]").forEach(function (b) {
       b.addEventListener("click", function () {
         try {
-          navigator.clipboard.writeText(b.getAttribute("data-copy"));
+          navigator.clipboard.writeText(b.getAttribute("data-ck") === "email" ? EMAIL : PHONE);
           var prev = b.textContent; b.textContent = "copied!"; b.classList.add("did");
           setTimeout(function () { b.textContent = prev; b.classList.remove("did"); }, 1400);
         } catch (e) {}
