@@ -234,16 +234,17 @@ a.hd-box, button.hd-box { cursor: pointer; }
 }
 .hero .h1-wrap { position: relative; display: inline-block; }
 .hero .h1-under { width: min(420px, 56%); height: 16px; margin-top: 6px; }
+/* top-left tag whose down-arrow points at "Mariya" (the start of the h1) */
 .hero .anno {
   position: absolute;
-  right: -10px;
-  top: -34px;
+  left: 4px;
+  top: -24px;
   display: flex;
   align-items: flex-end;
-  gap: 4px;
-  rotate: 2deg;
+  gap: 5px;
+  rotate: -5deg;
 }
-.hero .anno .doodle { width: 54px; height: 40px; }
+.hero .anno .doodle { width: 20px; height: 26px; }
 .hero .lede {
   max-width: 60ch;
   margin-top: 28px;
@@ -302,7 +303,7 @@ a.hd-box, button.hd-box { cursor: pointer; }
 .work-projects { min-width: 0; }
 .work-intro-stamp { display: flex; gap: 16px; align-items: center; margin: -18px 0 30px; }
 
-.project { padding: 56px 0 40px; border-top: 1.5px dashed var(--rule); scroll-margin-top: 86px; }
+.project { padding: 48px 0 34px; border-top: 1.5px dashed var(--rule); scroll-margin-top: 86px; }
 .project:first-child { border-top: none; padding-top: 12px; }
 .project-head { display: grid; grid-template-columns: 92px 1fr auto; gap: 22px; align-items: start; margin-bottom: 26px; }
 .numbubble { position: relative; width: 76px; height: 76px; }
@@ -590,6 +591,11 @@ a.hd-box, button.hd-box { cursor: pointer; }
   .topbar nav a { padding: 13px 8px; font-size: 10px; }
   .brand .t-hand { display: none; }
   .hero .anno { position: static; rotate: 0deg; margin-bottom: 10px; }
+  /* mobile-only: tame the 300px-default bracket SVG and let the note wrap so
+     it stops overflowing the phone — desktop composition stays untouched */
+  .work-intro-stamp { align-items: flex-start; }
+  .work-intro-stamp .doodle { width: 22px; height: 58px; flex-shrink: 0; }
+  .work-intro-stamp .t-hand { min-width: 0; }
   .cv-item { grid-template-columns: 1fr; gap: 2px; padding-left: 28px; }
   .cv-item .yr { order: -1; }
   .skills-grid { grid-template-columns: 1fr; }
@@ -1111,7 +1117,7 @@ window.BIO = BIO;
 
       '<div class="h1-wrap reveal">' +
       '<h1>' + esc(BIO.name) + '</h1>' +
-      '<div class="anno"><span class="t-hand">that’s me →</span></div>' +
+      '<div class="anno">' + D.arrowDown() + '<span class="t-hand">that’s me</span></div>' +
       '<div class="h1-under">' + D.underline() + '</div>' +
       '</div>' +
 
