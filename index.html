@@ -300,15 +300,10 @@ a.hd-box, button.hd-box { cursor: pointer; }
 /* ─── Work / projects ────────────────────────────────────────────── */
 .work-grid { display: grid; grid-template-columns: 1fr 150px; gap: 36px; align-items: start; }
 .work-projects { min-width: 0; }
-#work .section-head { margin-bottom: 14px; }
-.work-intro-stamp { display: flex; gap: 12px; align-items: center; margin: 0 0 8px; }
-/* constrain the bracket doodle (an unconstrained inline SVG defaults to 300px
-   and was overflowing mobile) and let the note shrink + wrap */
-.work-intro-stamp .doodle { width: 16px; height: 50px; flex-shrink: 0; }
-.work-intro-stamp .t-hand { font-size: clamp(17px, 2.3vw, 21px); line-height: 1.25; min-width: 0; }
+.work-intro-stamp { display: flex; gap: 16px; align-items: center; margin: -18px 0 30px; }
 
 .project { padding: 56px 0 40px; border-top: 1.5px dashed var(--rule); scroll-margin-top: 86px; }
-.project:first-child { border-top: none; padding-top: 0; }
+.project:first-child { border-top: none; padding-top: 12px; }
 .project-head { display: grid; grid-template-columns: 92px 1fr auto; gap: 22px; align-items: start; margin-bottom: 26px; }
 .numbubble { position: relative; width: 76px; height: 76px; }
 .numbubble svg { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -398,7 +393,9 @@ a.hd-box, button.hd-box { cursor: pointer; }
 
 /* ─── Hyperlapse (HDR gain-map safe — plain <img>, no canvas) ────── */
 .hyperlapse { position: relative; margin: 0; height: 165vh; }
-.hl-sticky { position: sticky; top: 96px; }
+/* offset leaves room for the "scrub me" note (top:-34) to sit clear of the
+   ~64px header — that gap is the margin, the note stays above the image */
+.hl-sticky { position: sticky; top: 112px; }
 .hl-stage {
   position: relative;
   overflow: hidden;
@@ -416,9 +413,7 @@ a.hd-box, button.hd-box { cursor: pointer; }
   object-fit: cover;
   display: block;
 }
-/* note sits INSIDE the stage's top-right (an opaque sticker) so it can never
-   be clipped by the sticky header above the animation */
-.hl-note { position: absolute; top: 10px; right: 10px; display: flex; align-items: center; gap: 6px; z-index: 3; background: var(--paper); border: 1.4px solid var(--ink); border-radius: 10px 12px 9px 11px; padding: 3px 10px; }
+.hl-note { position: absolute; top: -34px; right: 4px; display: flex; align-items: center; gap: 6px; z-index: 3; }
 .hl-note .doodle { width: 26px; height: 32px; }
 .hl-counter { font-variant-numeric: tabular-nums; }
 
@@ -601,7 +596,7 @@ a.hd-box, button.hd-box { cursor: pointer; }
   .contact-grid { grid-template-columns: 1fr; }
   .contact-row { grid-template-columns: 70px 1fr auto; }
   .contact-row .v { font-size: 15px; }
-  .hl-sticky { top: 86px; }
+  .hl-sticky { top: 106px; }
   .hyperlapse { height: 150vh; }
   .section { scroll-margin-top: 76px; }
 }
