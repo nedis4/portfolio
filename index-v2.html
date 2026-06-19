@@ -299,7 +299,7 @@ a.hd-box, button.hd-box { cursor: pointer; }
 .margin-note .doodle { width: 40px; height: 26px; flex-shrink: 0; }
 
 /* ─── Work / projects ────────────────────────────────────────────── */
-.work-grid { display: grid; grid-template-columns: 150px 1fr; gap: 36px; align-items: start; }
+.work-grid { display: grid; grid-template-columns: 1fr 150px; gap: 36px; align-items: start; }
 .work-projects { min-width: 0; }
 .work-intro-stamp { display: flex; gap: 16px; align-items: center; margin: -18px 0 30px; }
 
@@ -418,103 +418,14 @@ a.hd-box, button.hd-box { cursor: pointer; }
 .hl-note .doodle { width: 26px; height: 32px; }
 .hl-counter { font-variant-numeric: tabular-nums; }
 
-/* fixed grid layer used to hold the drafting grid still during the hyperlapse
-   scrub (cross-browser: iOS ignores background-attachment:fixed, honors this) */
-.grid-freeze {
-  position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0;
-  background-color: transparent;
-  background-image:
-    linear-gradient(var(--grid-major) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
-    linear-gradient(var(--grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 160px 160px, 160px 160px, 32px 32px, 32px 32px;
-}
-
-/* ─── V3: vertical lead + NATIVE horizontal project track ────────── */
-.project-lead { display: grid; gap: 22px; margin-bottom: 26px; }
-.proj-notes-m, .proj-feats-m { display: none; } /* shown only on phones (≤760) */
-.proj-h { position: relative; margin-top: 6px; }
-.proj-h-sticky { position: static; }
-.proj-h-cue { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; color: var(--ink-faint); }
-.proj-h-cue .t-hand { color: var(--ink-faint); font-size: 18px; }
-.proj-h-cue .cue-arrow { font-size: 22px; line-height: 1; }
-/* built-in horizontal scroll progress + back-to-start (aligned under the column) */
-.proj-h-foot { display: flex; align-items: center; gap: 18px; margin-top: 14px; }
-.proj-h-bar { position: relative; flex: 1; height: 12px; cursor: pointer; }
-.proj-h-bar .hbar-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
-.proj-h-bar .hbar-svg path { fill: none; stroke-linecap: round; vector-effect: non-scaling-stroke; }
-.hbar-track path { stroke: var(--rule); stroke-width: 2; }
-.hbar-fill { clip-path: inset(0 100% 0 0); } /* JS reveals from the left, linearly */
-.hbar-fill path { stroke: var(--red); stroke-width: 2.6; }
-.proj-h-reset { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.2s ease, color 0.15s ease; white-space: nowrap; }
-.proj-h-reset.show { opacity: 1; pointer-events: auto; }
-.proj-h-reset:hover { color: var(--red); }
-.proj-h-view {
-  overflow-x: auto; overflow-y: hidden;
-  margin-right: calc(50% - 50vw);  /* full-bleed: extend to the right browser edge */
-  height: min(76vh, 600px);
-  cursor: grab;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;        /* hide native scrollbar — the red thread is the indicator */
-}
-.proj-h-view.dragging { cursor: grabbing; user-select: none; }
-.proj-h-view::-webkit-scrollbar { display: none; }
-.proj-h-track { display: flex; gap: 22px; height: 100%; align-items: stretch; width: max-content; padding-bottom: 8px; padding-right: clamp(20px, 6vw, 80px); }
-.proj-h-track .reveal { opacity: 1; translate: 0 0; }
-.hpanel { flex: 0 0 auto; height: 100%; box-sizing: border-box; }
-/* text panels: wide + compact + scrollable so copy is never clipped */
-.hpanel--text { width: min(88vw, 600px); display: flex; flex-direction: column; gap: 14px; overflow-y: auto; padding: 2px 12px 2px 0; }
-.hpanel--text .project-meta { margin: 0; padding: 15px 18px; }
-.hpanel--text .project-notes { display: block; grid-template-columns: none; }
-.hpanel--text .project-notes .body { max-width: none; margin-top: 8px; }
-.hpanel--text .project-notes .body p { font-size: 14px; line-height: 1.52; }
-.hpanel--text .project-notes .body p:first-child { font-size: 15.5px; }
-.hpanel--media { width: clamp(300px, 38vw, 520px); }
-.hpanel--media .media-fig { height: 100%; display: flex; flex-direction: column; margin: 0; rotate: 0deg; }
-.hpanel--media .media-frame { flex: 1 1 auto; aspect-ratio: auto; min-height: 0; }
-.hpanel--feats { width: min(88vw, 560px); display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding: 2px 12px 2px 0; }
-.hpanel--feats .project-features { display: block; grid-template-columns: none; margin: 0; }
-.hpanel--feats .project-features ul { grid-template-columns: 1fr; gap: 10px 0; }
-.hpanel--feats .project-features li { font-size: 14px; }
-
-/* centered main column + sticky left index that lives in the page flow (bounded
-   by the projects, so it scrolls away with the page at the end — not fixed) */
-.work-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 900px) minmax(0, 1fr); column-gap: clamp(30px, 4.5vw, 56px); align-items: start; }
-.work-projects { min-width: 0; }
-@media (max-width: 1300px) { .pnav { display: none !important; } }
-
-/* phones: stack the track vertically — no horizontal strip */
-@media (max-width: 760px) {
-  /* phones: text + features read vertically (normal page flow → no scroll-trap);
-     the strip carries ONLY images, swiping sideways with the next shot cropped
-     at the right edge as the swipe cue. */
-  .hpanel--text, .hpanel--feats { display: none; }
-  .proj-notes-m, .proj-feats-m { display: block; }
-  .proj-notes-m { margin: 18px 0 24px; }
-  .proj-feats-m { margin: 6px 0 4px; }
-  .proj-notes-m .project-notes, .proj-feats-m .project-features { display: block; grid-template-columns: none; }
-  .proj-notes-m .project-notes .body { max-width: none; margin-top: 8px; }
-  .proj-feats-m .project-features ul { grid-template-columns: 1fr; }
-  .proj-notes-m .reveal, .proj-feats-m .reveal { opacity: 1; translate: none; }
-
-  .proj-h-view { margin-right: 0; height: auto; }   /* content-height → no inner scroll */
-  .proj-h-track { padding-right: 6vw; }
-  .hpanel { height: auto; }
-  .hpanel--media { width: 74vw; }                   /* < viewport → next image peeks */
-  .hpanel--media .media-fig { height: auto; }
-  .hpanel--media .media-frame { flex: none; aspect-ratio: 3 / 2; }
-}
-
 /* ─── Project side nav ("drawing index") ─────────────────────────── */
 .pnav {
-  justify-self: end;       /* sits in the left margin column, overflows into the gutter */
-  align-self: start;
   position: sticky;
   top: 130px;
-  width: 150px;
-  z-index: 40;
+  opacity: 0;
+  translate: 18px 0;
+  transition: opacity 0.4s ease, translate 0.4s ease;
+  pointer-events: none;
 }
 .pnav.is-visible { opacity: 1; translate: 0 0; pointer-events: auto; }
 .pnav .pnav-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 12px; }
@@ -680,18 +591,11 @@ a.hd-box, button.hd-box { cursor: pointer; }
   .topbar nav a { padding: 13px 8px; font-size: 10px; }
   .brand .t-hand { display: none; }
   .hero .anno { position: static; rotate: 0deg; margin-bottom: 10px; }
-  /* the "…here's the range." stamp is a half-page breather, like desktop.
-     Keep the brace at its natural 18:60 ratio so preserveAspectRatio="none"
-     scales it uniformly — stretching it tall/thin distorted it badly. The
-     half-page breathing comes from the margins, not from warping the brace. */
-  .work-intro-stamp { align-items: center; margin: 14vh 0 17vh; }
-  .work-intro-stamp .doodle { width: 72px; height: 300px; flex-shrink: 0; }
+  /* mobile-only: tame the 300px-default bracket SVG and let the note wrap so
+     it stops overflowing the phone — desktop composition stays untouched */
+  .work-intro-stamp { align-items: flex-start; }
+  .work-intro-stamp .doodle { width: 22px; height: 58px; flex-shrink: 0; }
   .work-intro-stamp .t-hand { min-width: 0; }
-  /* the brace carries the normalized-dash "draw" effect, which under-draws on
-     iOS for this stretched viewBox (same bug the CV spine had) — leaving the
-     brace broken mid-stroke. Render it as one solid stroke on phones; desktop
-     keeps its draw-on-scroll animation untouched. */
-  .work-intro-stamp .doodle path { stroke-dasharray: none !important; stroke-dashoffset: 0 !important; }
   .cv-item { grid-template-columns: 1fr; gap: 2px; padding-left: 28px; }
   .cv-item .yr { order: -1; }
   .skills-grid { grid-template-columns: 1fr; }
@@ -1297,11 +1201,12 @@ window.BIO = BIO;
         }).join("") + '</ul></div>';
     }
 
+    // split media: first half before features, rest after
     var media = p.media || [];
-    // one title image (or the hyperlapse) per project, then the horizontal strip
-    var leadMedia = media.slice(0, 1), restMedia = media.slice(1);
+    var half = Math.ceil(media.length / 2);
+    var topM = media.slice(0, half), botM = media.slice(half);
 
-    var head =
+    return '<article class="project" id="' + attr(p.id) + '">' +
       '<div class="project-head">' +
       '<div class="numbubble reveal">' + D.ring() + '<b>' + esc(p.num) + '</b></div>' +
       '<div class="head-main">' +
@@ -1313,38 +1218,9 @@ window.BIO = BIO;
       '</div>' +
       '<div class="right reveal"><span class="stamp">' + esc(p.status) + '</span>' +
       '<div class="tags">' + typeTags + '</div></div>' +
-      '</div>';
-
-    var leadBlock = '<div class="project-lead">' +
-      leadMedia.map(function (m) { return mediaFigure(m); }).join("") + '</div>';
-
-    // horizontal track: an intro-text panel, one panel per remaining image,
-    // then a features panel — slides in from the right as you keep scrolling.
-    var panels = '<div class="hpanel hpanel--text">' + meta + notes + '</div>';
-    restMedia.forEach(function (m) {
-      panels += '<div class="hpanel hpanel--media">' + mediaFigure(m) + '</div>';
-    });
-    panels += '<div class="hpanel hpanel--feats">' + feats + interventions + '</div>';
-
-    var horiz =
-      '<div class="proj-h">' +
-      '<div class="proj-h-cue"><span class="t-hand">drag, or scroll sideways</span>' +
-      '<span class="cue-arrow" aria-hidden="true">→</span></div>' +
-      '<div class="proj-h-view"><div class="proj-h-track">' + panels + '</div></div>' +
-      '<div class="proj-h-foot">' +
-      '<span class="proj-h-bar" title="Jump to position">' +
-      '<svg class="hbar-svg hbar-track" viewBox="0 0 1000 12" preserveAspectRatio="none" aria-hidden="true"><path d="M3 6 C 110 4, 220 8, 330 6 C 440 4, 550 8, 660 6 C 770 4, 880 8, 997 6"/></svg>' +
-      '<svg class="hbar-svg hbar-fill" viewBox="0 0 1000 12" preserveAspectRatio="none" aria-hidden="true"><path d="M3 6 C 110 4, 220 8, 330 6 C 440 4, 550 8, 660 6 C 770 4, 880 8, 997 6"/></svg>' +
-      '</span>' +
-      '<button class="proj-h-reset" type="button">back to start ↩</button>' +
-      '</div></div>';
-
-    // mobile-only vertical copies of the text + features (CSS shows these and
-    // hides the in-strip panels below 760px, so text never traps the scroll)
-    var notesM = '<div class="proj-notes-m">' + meta + notes + '</div>';
-    var featsM = '<div class="proj-feats-m">' + feats + interventions + '</div>';
-    return '<article class="project" id="' + attr(p.id) + '">' +
-      head + leadBlock + notesM + horiz + featsM + '</article>';
+      '</div>' +
+      meta + notes + mediaBlock(topM) + feats + mediaBlock(botM) + interventions +
+      '</article>';
   }
   function metaRow(k, v) {
     return '<span class="k">' + esc(k) + '</span><span class="v">' + esc(v) + '</span>';
@@ -1356,9 +1232,9 @@ window.BIO = BIO;
       sectionHead("§ 02 · Selected work", "Six projects, drawing to detail.", "02 / 04") +
       '<div class="work-intro-stamp reveal">' + D.bracket() +
       '<span class="t-hand t-hand--lg">from masterplan competitions to facade joints — here’s the range.</span></div>' +
-      '<div class="work-grid">' + projectNav() + '<div class="work-projects">' +
+      '<div class="work-grid"><div class="work-projects">' +
       PROJECTS.map(function (p, i) { return project(p, i, total); }).join("") +
-      '</div></div></section>';
+      '</div>' + projectNav() + '</div></section>';
   }
 
   function projectNav() {
@@ -1454,7 +1330,6 @@ window.BIO = BIO;
     var A = figure.querySelector(".hl-a"), B = figure.querySelector(".hl-b");
     var counter = figure.querySelector(".hl-counter");
     var sticky = figure.querySelector(".hl-sticky");
-    var gridLayer = document.querySelector(".grid-freeze");
     if (cfg.scroll) figure.style.height = cfg.scroll;
 
     var pad = cfg.pad || 0, first = cfg.first || 0, last = cfg.last || 0;
@@ -1467,7 +1342,6 @@ window.BIO = BIO;
     for (var k = 0; k < n; k++) idxs.push(first + Math.round((k * (last - first)) / (n - 1)));
     var loaded = new Array(n).fill(false);
     var cur = 0, want = 0, swapping = false, preloading = false, front = A, back = B;
-    var gridB = 0, gridF = 0, gridFrozen = false; // drafting-grid freeze state
 
     function setCounter(i) {
       if (counter) counter.textContent = String(i + 1).padStart(3, "0") + " / " + String(n).padStart(3, "0");
@@ -1532,82 +1406,10 @@ window.BIO = BIO;
         var vh = window.innerHeight;
         if (r.top < vh * 1.5 && r.bottom > -vh * 0.5) preload();
         var p = Math.min(1, Math.max(0, (stickyTopPx - r.top) / travel));
-        // Freeze the drafting grid while scrubbing WITHOUT per-frame JS (which
-        // jitters against compositor scroll): flip the background to viewport-
-        // fixed for the pin, back to scrolling at the last frame. bg-position is
-        // realigned (mod the 160px grid) at each flip so there's no visible jump.
-        var scrubbing = p > 0 && p < 1;
-        if (scrubbing && !gridFrozen) {
-          // Show the FIXED grid layer (iOS honors position:fixed, but ignores
-          // background-attachment:fixed) aligned to the body grid, and hide the
-          // body grid — so the grid sits still on every browser, no jitter.
-          var s0 = window.scrollY || 0;
-          gridF = (((gridB - s0) % 160) + 160) % 160;
-          if (gridLayer) { gridLayer.style.backgroundPositionY = gridF + "px"; gridLayer.style.opacity = "1"; }
-          document.body.style.backgroundImage = "none";
-          gridFrozen = true;
-        } else if (!scrubbing && gridFrozen) {
-          var s1 = window.scrollY || 0;
-          gridB = (((gridF + s1) % 160) + 160) % 160;
-          document.body.style.backgroundImage = "";
-          document.body.style.backgroundPositionY = gridB + "px";
-          if (gridLayer) gridLayer.style.opacity = "0";
-          gridFrozen = false;
-        }
         want = Math.round(p * (n - 1));
         if (want !== cur) swap();
       }
     };
-  }
-
-  /* ── horizontal project scroll: NATIVE overflow-x (horizontal trackpad /
-     shift-wheel) plus click-and-drag to pan. The page keeps scrolling
-     vertically — no hijacking, no preventDefault on wheel. ── */
-  function initHStrip(wrap) {
-    var view = wrap.querySelector(".proj-h-view");
-    if (!view) return;
-    var barEl = wrap.querySelector(".proj-h-bar");
-    var fill = wrap.querySelector(".hbar-fill");
-    var reset = wrap.querySelector(".proj-h-reset");
-    // click-and-drag to pan (mouse); native trackpad / shift-wheel also work
-    var down = false, startX = 0, startLeft = 0, moved = false;
-    view.addEventListener("pointerdown", function (e) {
-      if (e.pointerType === "touch") return; // native touch scroll handles itself
-      down = true; moved = false; startX = e.clientX; startLeft = view.scrollLeft;
-      view.classList.add("dragging");
-      try { view.setPointerCapture(e.pointerId); } catch (err) {}
-    });
-    view.addEventListener("pointermove", function (e) {
-      if (!down) return;
-      var dx = e.clientX - startX;
-      if (Math.abs(dx) > 3) moved = true;
-      view.scrollLeft = startLeft - dx;
-    });
-    function end() { down = false; view.classList.remove("dragging"); }
-    view.addEventListener("pointerup", end);
-    view.addEventListener("pointercancel", end);
-    // a pan shouldn't register as a click on whatever was under the cursor
-    view.addEventListener("click", function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); } }, true);
-    // built-in horizontal progress bar + back-to-start (per modusforma)
-    function bar() {
-      var max = view.scrollWidth - view.clientWidth;
-      var p = max > 0 ? Math.min(1, Math.max(0, view.scrollLeft / max)) : 0;
-      if (fill) fill.style.clipPath = "inset(0 " + ((1 - p) * 100).toFixed(2) + "% 0 0)";
-      if (reset) reset.classList.toggle("show", view.scrollLeft > 8);
-    }
-    view.addEventListener("scroll", bar, { passive: true });
-    window.addEventListener("resize", bar);
-    bar();
-    if (reset) reset.addEventListener("click", function () {
-      view.scrollTo({ left: 0, behavior: "smooth" });
-    });
-    // click anywhere on the progress line to jump to that position
-    if (barEl) barEl.addEventListener("click", function (e) {
-      var max = view.scrollWidth - view.clientWidth;
-      var r = barEl.getBoundingClientRect();
-      var ratio = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
-      view.scrollTo({ left: ratio * max, behavior: "smooth" });
-    });
   }
 
   /* ── scroll-driven systems ────────────────────────────────────── */
@@ -1618,8 +1420,6 @@ window.BIO = BIO;
     var pnav = document.getElementById("pnav");
     var pnavItems = [].slice.call(document.querySelectorAll("[data-pnav]"));
     var hls = [].slice.call(document.querySelectorAll(".hyperlapse")).map(initHyperlapse);
-    var scrollers = hls;
-    [].slice.call(document.querySelectorAll(".proj-h")).forEach(initHStrip);
     // cache element refs once — getElementById on every scroll frame (4
     // sections + work + 6 projects) was needless per-frame churn.
     var sectionEls = SECTIONS.map(function (s) { return document.getElementById(s.id); });
@@ -1693,15 +1493,16 @@ window.BIO = BIO;
         if (progPath) progPath.style.strokeDashoffset = String(1 - (max > 0 ? sc / max : 0));
         if (topbarEl) topbarEl.classList.toggle("is-stuck", sc > 10);
         spyLinks.forEach(function (a) { a.classList.toggle("active", a.getAttribute("data-spy") === curId); });
-        if (pnav) {
+        if (workRect && pnav) {
+          pnav.classList.toggle("is-visible", workRect.top < vh * 0.5 && workRect.bottom > vh * 0.4);
           pnavItems.forEach(function (li) { li.classList.toggle("is-active", li.getAttribute("data-pnav") === bestId); });
         }
-        for (var hi = 0; hi < scrollers.length; hi++) scrollers[hi].update();
+        for (var hi = 0; hi < hls.length; hi++) hls[hi].update();
       });
     }
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", function () {
-      for (var i = 0; i < scrollers.length; i++) scrollers[i].measure();
+      for (var i = 0; i < hls.length; i++) hls[i].measure();
       onScroll();
     });
     onScroll();
@@ -1711,7 +1512,6 @@ window.BIO = BIO;
   function mount() {
     var root = document.getElementById("root");
     root.innerHTML =
-      '<div class="grid-freeze" aria-hidden="true"></div>' +
       '<div class="progress">' + D.progress() + '</div>' +
       topbar() +
       '<main class="page">' + hero() + about() + work() + cv() + contact() + '</main>' +
