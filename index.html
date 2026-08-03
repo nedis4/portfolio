@@ -6,6 +6,12 @@
 <title>Mariya Benovska — Architecture Portfolio</title>
 <meta name="description" content="Mariya Benovska — Architect MA, BIM coordinator. Selected architecture and masterplanning work, 2019–2026.">
 <meta name="color-scheme" content="light">
+<meta name="theme-color" content="#fcfbf7">
+<meta property="og:title" content="Mariya Benovska — Architecture Portfolio">
+<meta property="og:description" content="Mariya Benovska — Architect MA, BIM coordinator. Selected architecture and masterplanning work, 2019–2026.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Person","name":"Mariya Benovska","jobTitle":"Architect · BIM Coordinator","address":{"@type":"PostalAddress","addressLocality":"Aachen","addressCountry":"DE"},"sameAs":["https://linkedin.com/in/mariya-benovska"]}</script>
 <style>
 /* ════════════════════════════════════════════════════════════════════
    Mariya Benovska — portfolio V2 · "The architect's worktable"
@@ -21,7 +27,7 @@
   --paper-2: #f4f1e9;
   --ink: #232220;
   --ink-soft: #56544d;
-  --ink-faint: #8e8b81;
+  --ink-faint: #767369;  /* AA: ≥4.5:1 on --paper (was #8e8b81 ≈ 3.1:1 — failed for the 10px meta text) */
   --red: #cf3a1b;
   --red-soft: rgba(207, 58, 27, 0.08);
   --blue: #5b89b4;
@@ -43,7 +49,17 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;  /* block swipe-back nav at the root, so the strips don't need to (see .proj-h-view) */
+  /* Decorative bleed elements leave ~50px of stray horizontal overflow. Harmless
+     until the strips became overflow:hidden — now their horizontal-pan wheel
+     events bubble to the document and scroll/bounce that overflow, jerking the
+     whole page. Lock horizontal scroll at the viewport. NB: needs BOTH this and
+     body's overflow-x:clip — neither alone fully stops it (verified). Sticky-safe:
+     html is already the viewport scroller, body uses clip (no new container). */
+  overflow-x: hidden;
+}
 body {
   margin: 0;
   color: var(--ink);
@@ -59,6 +75,9 @@ body {
     linear-gradient(90deg, var(--grid) 1px, transparent 1px);
   background-size: 160px 160px, 160px 160px, 32px 32px, 32px 32px;
   -webkit-font-smoothing: antialiased;
+  overflow-x: clip;   /* paired with html's overflow-x:hidden — BOTH are needed to
+                         fully lock the page's stray horizontal scroll. clip here
+                         (not hidden) creates no scroll container, so sticky is safe. */
 }
 img { max-width: 100%; display: block; }
 a { color: inherit; text-decoration: none; }
@@ -75,6 +94,27 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 .t-hand { font-family: var(--hand); font-size: 22px; font-weight: 500; line-height: 1.15; color: var(--red); letter-spacing: 0; }
 .t-hand--ink { color: var(--ink-soft); }
 .t-hand--lg { font-size: clamp(26px, 3.4vw, 34px); }
+/* visually hidden, still read by screen readers (headings, labels) */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+/* keyboard users otherwise have to tab through the whole topbar nav on every
+   page load before reaching real content — parked off-screen, slides into
+   view on focus */
+.skip-link {
+  position: fixed; top: 10px; left: 10px; z-index: 100;
+  padding: 10px 18px;
+  background: var(--paper);
+  border: 1.6px solid var(--ink);
+  border-radius: var(--wobble);
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase;
+  translate: 0 -80px;
+  transition: translate 0.15s ease;
+}
+.skip-link:focus { translate: 0 0; }
+#main:focus { outline: none; }  /* tabindex="-1" target — no visible ring needed around the whole landmark */
 
 /* ─── Hand-drawn boxes, stamps, tape ─────────────────────────────── */
 .hd-box {
@@ -212,20 +252,13 @@ a.hd-box, button.hd-box { cursor: pointer; }
   color: var(--ink-soft);
   padding: 13px 12px;
 }
-.topbar nav a .nav-ring {
-  position: absolute;
-  inset: 4px 0;
-  width: 100%;
-  height: calc(100% - 8px);
-  pointer-events: none;
-}
 .topbar nav a.active { color: var(--ink); }
-.topbar nav a .nav-ring path { transition: stroke-dashoffset 0.55s ease; }
 .topbar nav .pill { margin-left: 10px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; padding: 10px 16px; }
 
 /* ─── Hero ───────────────────────────────────────────────────────── */
 .hero { position: relative; padding: clamp(56px, 9vh, 110px) 0 24px; }
 .hero .kicker { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 26px; }
+.kicker-est { white-space: nowrap; }  /* was wrapping to "est." / "2026" on narrow phones */
 .hero h1 {
   font-size: clamp(44px, 8.2vw, 104px);
   letter-spacing: -0.03em;
@@ -275,6 +308,15 @@ a.hd-box, button.hd-box { cursor: pointer; }
 .skyline svg { width: 100%; height: clamp(48px, 7vw, 80px); }
 .skyline path { stroke: var(--ink); stroke-width: 2; }
 .skyline .draw path { transition-duration: 2.6s; }
+
+/* short browser windows (laptop chrome, landscape tablets): tighten the
+   hero's vertical rhythm so the scroll prompt reliably clears the fold */
+@media (max-height: 720px) {
+  .hero { padding-top: clamp(40px, 6vh, 70px); }
+  .hero .facts { margin-top: 18px; }
+  .hero .dimline { margin-top: 22px; }
+  .hero .scrollcue { margin-top: 24px; }
+}
 
 /* ─── Sections ───────────────────────────────────────────────────── */
 .section { padding: clamp(64px, 9vh, 120px) 0 32px; scroll-margin-top: 86px; }
@@ -358,6 +400,85 @@ a.hd-box, button.hd-box { cursor: pointer; }
 .media-tall   { aspect-ratio: 4 / 5; }
 .media-square { aspect-ratio: 1 / 1; }
 .media-cinema { aspect-ratio: 21 / 9; }
+
+/* ── "expand to see details" overlay on cropped, oversized stills ── */
+.media-frame--expand { cursor: zoom-in; }
+.media-expand {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: 14px; cursor: zoom-in; z-index: 2;
+}
+.media-expand-veil {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(35,34,32,0.42) 0%, rgba(35,34,32,0) 46%);
+  opacity: 0.85; transition: opacity 0.2s ease;
+}
+.media-expand-tag {
+  position: relative; z-index: 1;
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 19px; line-height: 1; color: var(--paper);
+  background: var(--red); border: 1.6px solid var(--paper);
+  border-radius: var(--wobble-2);
+  padding: 7px 15px;
+  box-shadow: 0 2px 9px rgba(35,34,32,0.28);
+  transition: rotate 0.2s ease, scale 0.2s ease;
+  rotate: -1.4deg;
+}
+.media-expand-icon { font-family: var(--sans); font-size: 15px; translate: 0 -1px; }
+.media-frame--expand:hover .media-expand-veil { opacity: 1; }
+.media-frame--expand:hover .media-expand-tag { rotate: 0deg; scale: 1.04; }
+.media-expand:focus-visible { outline: 2px solid var(--blue); outline-offset: -4px; }
+
+/* ── full-size 1:1 image viewer ── */
+/* html, not just body, must lock: html is the page's real scroller (its
+   overflow-y is auto) — locking body alone left the page scrollable behind
+   the open lightbox, which read as the whole page jerking as you scrolled
+   the image. */
+html.lb-open, body.lb-open { overflow: hidden; }
+.lightbox {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; flex-direction: column;
+  background: rgba(28,27,25,0.93);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+}
+.lightbox[hidden] { display: none; }
+.lightbox-bar {
+  flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 12px clamp(14px, 4vw, 40px);
+  background: var(--paper);
+  border-bottom: 1.5px solid var(--ink);
+}
+.lightbox-cap { display: flex; align-items: baseline; gap: 4px; min-width: 0; }
+.lightbox-cap .lb-label {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink); font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lightbox-cap .lb-coords { color: var(--ink-faint); white-space: nowrap; }
+.lightbox-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.lightbox-zoom, .lightbox-close { flex: 0 0 auto; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 14px; }
+.lightbox-scroll {
+  flex: 1 1 auto; overflow: auto;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: clamp(16px, 4vw, 48px);
+  cursor: grab; -webkit-overflow-scrolling: touch;
+  /* belt-and-suspenders with html.lb-open: once this inner scroller can't
+     consume more wheel/scroll (image fits, or you're at an edge), don't let
+     it chain to the page underneath. */
+  overscroll-behavior: contain;
+}
+.lightbox-scroll.dragging { cursor: grabbing; user-select: none; }
+/* 1:1 — natural pixel size, never scaled down; the container scrolls */
+.lightbox-img {
+  width: auto; max-width: none; height: auto; flex: 0 0 auto;
+  background: var(--paper-2); box-shadow: 0 6px 30px rgba(0,0,0,0.4);
+}
+/* fit mode: scale to the viewer's width so a giant image reveals in reading
+   order (scroll down only) instead of opening off-screen on both axes —
+   the default on phones/touch (see TOUCH_OR_SMALL in app.js) */
+.lightbox.lb-fit .lightbox-img { width: 100%; max-width: 100%; }
+
 .drop-cap {
   display: flex;
   justify-content: space-between;
@@ -416,6 +537,10 @@ a.hd-box, button.hd-box { cursor: pointer; }
 }
 .hl-note { position: absolute; top: -34px; right: 4px; display: flex; align-items: center; gap: 6px; z-index: 3; }
 .hl-note .doodle { width: 26px; height: 32px; }
+/* scrubbing does nothing until the sequence is loaded — don't invite it yet */
+.hl-gated .hl-note { display: none; }
+.hl-gate { cursor: pointer; }  /* .media-expand's inherited zoom-in cursor doesn't fit a "load" action */
+.hl-gate-size { color: var(--paper); opacity: 0.85; }
 .hl-counter { font-variant-numeric: tabular-nums; }
 
 /* fixed grid layer used to hold the drafting grid still during the hyperlapse
@@ -435,29 +560,61 @@ a.hd-box, button.hd-box { cursor: pointer; }
 .project-lead { display: grid; gap: 22px; margin-bottom: 26px; }
 .proj-notes-m, .proj-feats-m { display: none; } /* shown only on phones (≤760) */
 .proj-h { position: relative; margin-top: 6px; }
-.proj-h-sticky { position: static; }
 .proj-h-cue { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; color: var(--ink-faint); }
 .proj-h-cue .t-hand { color: var(--ink-faint); font-size: 18px; }
 .proj-h-cue .cue-arrow { font-size: 22px; line-height: 1; }
+/* show the gesture that actually applies on this input type (see .proj-h-view
+   touch handling in app.js for the same signal used to pick the real behavior) */
+.proj-h-cue .cue-touch { display: none; }
+@media (hover: none) and (pointer: coarse) {
+  .proj-h-cue .cue-mouse { display: none; }
+  .proj-h-cue .cue-touch { display: inline; }
+}
 /* built-in horizontal scroll progress + back-to-start (aligned under the column) */
 .proj-h-foot { display: flex; align-items: center; gap: 18px; margin-top: 14px; }
+/* telegraphs how much is in the strip before you commit to panning through it */
+.proj-h-count { flex: 0 0 auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .proj-h-bar { position: relative; flex: 1; height: 12px; cursor: pointer; }
 .proj-h-bar .hbar-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
 .proj-h-bar .hbar-svg path { fill: none; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .hbar-track path { stroke: var(--rule); stroke-width: 2; }
 .hbar-fill { clip-path: inset(0 100% 0 0); } /* JS reveals from the left, linearly */
 .hbar-fill path { stroke: var(--red); stroke-width: 2.6; }
-.proj-h-reset { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.2s ease, color 0.15s ease; white-space: nowrap; }
+.proj-h-reset {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-faint); cursor: pointer; opacity: 0; pointer-events: none;
+  transition: opacity 0.2s ease, color 0.15s ease; white-space: nowrap;
+  /* padding widens the real (tappable) button box to clear the 24px WCAG 2.2
+     target-size minimum; the equal negative margin keeps its visual footprint
+     — and the flex gap around it in .proj-h-foot — exactly as before. */
+  padding: 10px 6px; margin: -10px -6px;
+}
 .proj-h-reset.show { opacity: 1; pointer-events: auto; }
 .proj-h-reset:hover { color: var(--red); }
 .proj-h-view {
-  overflow-x: auto; overflow-y: hidden;
+  /* DESKTOP DEFAULT: overflow hidden, so the strip is NOT a native wheel-scroll
+     container. A native horizontal scroller (overflow-x:auto) makes Chrome
+     translate a VERTICAL wheel into horizontal scroll of the strip — trapping
+     the page whenever the cursor is over it. With overflow hidden the vertical
+     wheel just passes to the page natively (full momentum, works mid-strip and
+     at the ends); horizontal panning is driven by JS instead (drag + a passive
+     wheel handler for shift-wheel / horizontal trackpad). Touch overrides below. */
+  overflow: hidden;
   margin-right: calc(50% - 50vw);  /* full-bleed: extend to the right browser edge */
   height: min(76vh, 600px);
   cursor: grab;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
   scrollbar-width: none;        /* hide native scrollbar — the red thread is the indicator */
+  /* hybrid touchscreens get this desktop branch: let horizontal touch-drags
+     reach the JS pan (pointermove) while vertical swipes stay native */
+  touch-action: pan-y pinch-zoom;
+}
+.proj-h-view:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
+/* TOUCH: restore native horizontal overflow so finger-swipe panning works.
+   Touch scrolling doesn't do the vertical→horizontal wheel translation, so
+   there's no trap here; a vertical swipe just chains to the page as normal. */
+@media (hover: none) and (pointer: coarse) {
+  .proj-h-view { overflow-x: auto; touch-action: auto; }
 }
 .proj-h-view.dragging { cursor: grabbing; user-select: none; }
 .proj-h-view::-webkit-scrollbar { display: none; }
@@ -516,7 +673,6 @@ a.hd-box, button.hd-box { cursor: pointer; }
   width: 150px;
   z-index: 40;
 }
-.pnav.is-visible { opacity: 1; translate: 0 0; pointer-events: auto; }
 .pnav .pnav-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 12px; }
 .pnav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .pnav li {
@@ -653,7 +809,8 @@ a.hd-box, button.hd-box { cursor: pointer; }
   max-width: 1180px;
   margin: 40px auto 0;
 }
-.colophon button { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); letter-spacing: 0.06em; }
+/* same tappable-area technique as .proj-h-reset above */
+.colophon button { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); letter-spacing: 0.06em; padding: 10px 6px; margin: -10px -6px; }
 .colophon button:hover { color: var(--red); }
 
 /* ─── Responsive ─────────────────────────────────────────────────── */
@@ -679,7 +836,18 @@ a.hd-box, button.hd-box { cursor: pointer; }
   .topbar nav { gap: 0; }
   .topbar nav a { padding: 13px 8px; font-size: 10px; }
   .brand .t-hand { display: none; }
+  /* "Mariya Benovska" was wrapping to two lines here, doubling the sticky
+     header's height. min-width:0 lets the flex item actually shrink instead
+     of forcing nav to give way; nowrap+ellipsis is a last-resort clamp for
+     the very narrowest phones — at normal widths the smaller font is enough
+     and the name never truncates. */
+  .brand { font-size: 14.5px; min-width: 0; }
+  .brand > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hero .anno { position: static; rotate: 0deg; margin-bottom: 10px; }
+  /* static positioning drops .anno into normal flow AFTER the h1 (see hero()
+     markup) — it now sits below the name instead of above it, so the down-
+     arrow pointed further away instead of at the name. Flip it to point up. */
+  .hero .anno .doodle { scale: 1 -1; }
   /* the "…here's the range." stamp is a half-page breather, like desktop.
      Keep the brace at its natural 18:60 ratio so preserveAspectRatio="none"
      scales it uniformly — stretching it tall/thin distorted it badly. The
@@ -719,6 +887,20 @@ a.hd-box, button.hd-box { cursor: pointer; }
   .hyperlapse { height: auto !important; }
   .hl-sticky { position: static !important; }
   .project { break-inside: avoid; }
+
+  /* horizontal strips: on screen these are overflow:hidden with a fixed
+     height and only reveal the rest by panning — on paper there's no "pan",
+     so everything beyond the first screen-width was silently missing from
+     the printout. Switch the track to wrap so every panel prints, in order. */
+  .proj-h-cue, .proj-h-foot, .media-expand { display: none !important; }
+  .proj-h-view { overflow: visible !important; height: auto !important; margin-right: 0 !important; }
+  .proj-h-track { flex-wrap: wrap !important; width: auto !important; height: auto !important; }
+  .hpanel { height: auto !important; }
+  /* the media panel's height (and its image's) came from the now-removed
+     fixed strip height, via a 100% chain — restore a concrete aspect-ratio
+     so it doesn't collapse to 0 on paper. */
+  .hpanel--media .media-fig { height: auto !important; }
+  .hpanel--media .media-frame { flex: none !important; aspect-ratio: 4 / 3 !important; min-height: auto !important; }
 }
 
 /* ─── Reduced motion ─────────────────────────────────────────────── */
@@ -738,6 +920,7 @@ a.hd-box, button.hd-box { cursor: pointer; }
 </head>
 <body>
 <div id="root"></div>
+<noscript><p style="font-family:sans-serif;max-width:40em;margin:3em auto;padding:0 1.5em">This portfolio is rendered with JavaScript. Please enable JavaScript, or reach me on LinkedIn: linkedin.com/in/mariya-benovska</p></noscript>
 <script>
 // data.js — project data + bio. Factual content identical to V1.
 const PROJECTS = [
@@ -745,24 +928,22 @@ const PROJECTS = [
     id: "zam-spaces",
     num: "01",
     title: "ZAM SPACES",
-    subtitle: "Lorem ipsum dolor sit amet — placeholder subtitle",
-    city: "Lorem, Ipsum",
-    year: "2026",
-    studio: "Lorem ipsum studio",
-    type: "Placeholder · Lorem ipsum",
-    status: "Draft · placeholder",
-    program: "Lorem ipsum dolor sit amet, consectetur adipiscing elit",
-    role: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
+    subtitle: "Mixed-use urban extension for Munich",
+    city: "Munich, Germany",
+    year: "2019 — 2024",
+    studio: "Störmer Murphy and Partners",
+    type: "Mixed-use · Urban extension",
+    status: "Completed · 2024",
+    program: "Residential, retail and office spaces",
+    role: "Design development, facade design development, material concept, key detail planning",
     intro:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua — placeholder copy for the ZAM SPACES project.",
+      "An urban extension for a growing Munich — a mixed-use neighbourhood of homes, retail and offices, given its identity by a diverse, expressive facade.",
     lede:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur excepteur sint occaecat cupidatat non proident.",
+      "The project represents an urban extension of the city of Munich, envisioning a mixed-use neighbourhood that brings together residential, retail, and office space. A distinctive internal spatial organization, combined with a strong architectural character expressed through the facade design, strengthens the identity of the surrounding neighbourhood and positions the development as a new attraction point in the city's growth. The diversity of facades and their materiality reinforces the underlying idea of a mixed-use urban typology.",
     features: [
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit",
-      "Sed do eiusmod tempor incididunt ut labore et dolore magna",
-      "Ut enim ad minim veniam, quis nostrud exercitation ullamco",
-      "Duis aute irure dolor in reprehenderit in voluptate velit",
-      "Excepteur sint occaecat cupidatat non proident sunt culpa",
+      "Urban extension project for the city of Munich",
+      "Mixed-use program: residential, retail and office spaces",
+      "Distinctive internal spatial distribution across uses",
     ],
     media: [
       {
@@ -812,9 +993,9 @@ const PROJECTS = [
       "Stepped roof terraces with views toward the Town Hall",
     ],
     media: [
-      { src: "assets/projects/house-of-knowledge-01.png", kind: "wide",  label: "EXTERIOR · STREET VIEW",         coords: "Bochum" },
-      { src: "assets/projects/house-of-knowledge-02.png", kind: "tall",  label: "STEPPED ROOF GARDEN",            coords: "+116.80m" },
-      { src: "assets/projects/house-of-knowledge-03.png", kind: "tall",  label: "OPEN SPACE · INTERIOR ATRIUM",   coords: "1.OG" },
+      { src: "assets/projects/house-of-knowledge-01.jpg", kind: "wide",  label: "EXTERIOR · STREET VIEW",         coords: "Bochum" },
+      { src: "assets/projects/house-of-knowledge-02.jpg", kind: "tall",  label: "STEPPED ROOF GARDEN",            coords: "+116.80m" },
+      { src: "assets/projects/house-of-knowledge-03.jpg", kind: "tall",  label: "OPEN SPACE · INTERIOR ATRIUM",   coords: "1.OG" },
     ],
   },
   {
@@ -843,8 +1024,8 @@ const PROJECTS = [
       "Construction while schools remain in full operation",
     ],
     media: [
-      { src: "assets/projects/duisburg-01.png", kind: "cinema", label: "TKG SCHOOL · CLINKER FACADE",   coords: "Rheinhausen" },
-      { src: "assets/projects/duisburg-02.png", kind: "wide",   label: "HHG SCHOOL · ENTRANCE ELEVATION", coords: "Alt-Hamborn" },
+      { src: "assets/projects/duisburg-01.jpg", kind: "cinema", label: "TKG SCHOOL · CLINKER FACADE",   coords: "Rheinhausen" },
+      { src: "assets/projects/duisburg-02.jpg", kind: "wide",   label: "HHG SCHOOL · ENTRANCE ELEVATION", coords: "Alt-Hamborn", expand: true },
     ],
   },
   {
@@ -874,12 +1055,12 @@ const PROJECTS = [
       "Collaboration with Karres en Brands landscape architects",
     ],
     media: [
-      { src: "assets/projects/kieler-kante-01.png", kind: "wide",  label: "AERIAL · RUNWAY & FJORD",   coords: "View north" },
-      { src: "assets/projects/kieler-kante-03.png", kind: "tall",  label: "SITE PLAN",                 coords: "1:5000" },
-      { src: "assets/projects/kieler-kante-04.png", kind: "tall",  label: "WATER ACCESS TYPOLOGIES",   coords: "Isometric · four" },
-      { src: "assets/projects/kieler-kante-05.png", kind: "square", label: "MASTERPLAN · FIELD A",       coords: "1:2000" },
-      { src: "assets/projects/kieler-kante-06.png", kind: "tall",  label: "MASTERPLAN · FIELD B",       coords: "1:2000" },
-      { src: "assets/projects/kieler-kante-02.png", kind: "cinema", label: "AERIAL · OVERCAST",          coords: "View north" },
+      { src: "assets/projects/kieler-kante-01.jpg", kind: "wide",  label: "AERIAL · RUNWAY & FJORD",   coords: "View north" },
+      { src: "assets/projects/kieler-kante-03.jpg", kind: "tall",  label: "SITE PLAN",                 coords: "1:5000" },
+      { src: "assets/projects/kieler-kante-04.jpg", kind: "tall",  label: "WATER ACCESS TYPOLOGIES",   coords: "Isometric · four", expand: true },
+      { src: "assets/projects/kieler-kante-05.jpg", kind: "square", label: "MASTERPLAN · FIELD A",       coords: "1:2000" },
+      { src: "assets/projects/kieler-kante-06.jpg", kind: "tall",  label: "MASTERPLAN · FIELD B",       coords: "1:2000", expand: true },
+      { src: "assets/projects/kieler-kante-02.jpg", kind: "cinema", label: "AERIAL · OVERCAST",          coords: "View north" },
     ],
   },
   {
@@ -906,10 +1087,10 @@ const PROJECTS = [
       "Visual and spatial connection to historic courtyard",
     ],
     media: [
-      { src: "assets/projects/das-praesidium-01.png", kind: "wide",   label: "TOWER · STREET VIEW",   coords: "+175.00m" },
-      { src: "assets/projects/das-praesidium-02.png", kind: "tall",   label: "COURTYARD VIEW",        coords: "Historic frontage" },
-      { src: "assets/projects/das-praesidium-03.png", kind: "square", label: "GROUND FLOOR PLAN",     coords: "OKFF ± 0.00" },
-      { src: "assets/projects/das-praesidium-04.png", kind: "square", label: "MASTERPLAN",            coords: "City block" },
+      { src: "assets/projects/das-praesidium-01.jpg", kind: "wide",   label: "TOWER · STREET VIEW",   coords: "+175.00m" },
+      { src: "assets/projects/das-praesidium-02.jpg", kind: "tall",   label: "COURTYARD VIEW",        coords: "Historic frontage" },
+      { src: "assets/projects/das-praesidium-03.jpg", kind: "square", label: "GROUND FLOOR PLAN",     coords: "OKFF ± 0.00" },
+      { src: "assets/projects/das-praesidium-04.jpg", kind: "square", label: "MASTERPLAN",            coords: "City block" },
     ],
   },
   {
@@ -945,16 +1126,16 @@ const PROJECTS = [
       { n: "05", name: "Massacres", note: "Vertical-horizontal extension near Reformation church" },
     ],
     media: [
-      { src: "assets/projects/moabiter-unruhen-01.png", kind: "tall",   label: "MUSEUM · INTERIOR PASSAGE",   coords: "Perforated walls" },
-      { src: "assets/projects/moabiter-unruhen-06.png", kind: "cinema", label: "STREET SECTION · MUSEUM",      coords: "1:200" },
-      { src: "assets/projects/moabiter-unruhen-04.png", kind: "wide",   label: "MUSEUM · STREET VIEW",        coords: "Elevation" },
-      { src: "assets/projects/moabiter-unruhen-05.png", kind: "square", label: "ACCESS TO RAILWAY REMAINS",   coords: "Isometric" },
-      { src: "assets/projects/moabiter-unruhen-02.png", kind: "square", label: "HISTORICAL SITE · 1910",       coords: "Coal processing" },
-      { src: "assets/projects/moabiter-unruhen-03.png", kind: "square", label: "PROPOSED INTERVENTION",        coords: "Site iso" },
-      { src: "assets/projects/moabiter-unruhen-08.png", kind: "square", label: "02 · LIVING UNIT",              coords: "Intervention" },
-      { src: "assets/projects/moabiter-unruhen-09.png", kind: "square", label: "03 · COAL BLOCKADE",            coords: "Intervention" },
-      { src: "assets/projects/moabiter-unruhen-07.png", kind: "square", label: "04 · GATHERING PLACE",          coords: "Intervention" },
-      { src: "assets/projects/moabiter-unruhen-10.png", kind: "tall",   label: "05 · MASSACRES",                coords: "Intervention" },
+      { src: "assets/projects/moabiter-unruhen-01.jpg", kind: "tall",   label: "MUSEUM · INTERIOR PASSAGE",   coords: "Perforated walls" },
+      { src: "assets/projects/moabiter-unruhen-06.jpg", kind: "cinema", label: "STREET SECTION · MUSEUM",      coords: "1:200" },
+      { src: "assets/projects/moabiter-unruhen-04.jpg", kind: "wide",   label: "MUSEUM · STREET VIEW",        coords: "Elevation" },
+      { src: "assets/projects/moabiter-unruhen-05.jpg", kind: "square", label: "ACCESS TO RAILWAY REMAINS",   coords: "Isometric" },
+      { src: "assets/projects/moabiter-unruhen-02.jpg", kind: "square", label: "HISTORICAL SITE · 1910",       coords: "Coal processing" },
+      { src: "assets/projects/moabiter-unruhen-03.jpg", kind: "square", label: "PROPOSED INTERVENTION",        coords: "Site iso" },
+      { src: "assets/projects/moabiter-unruhen-08.jpg", kind: "square", label: "02 · LIVING UNIT",              coords: "Intervention" },
+      { src: "assets/projects/moabiter-unruhen-09.jpg", kind: "square", label: "03 · COAL BLOCKADE",            coords: "Intervention" },
+      { src: "assets/projects/moabiter-unruhen-07.jpg", kind: "square", label: "04 · GATHERING PLACE",          coords: "Intervention" },
+      { src: "assets/projects/moabiter-unruhen-10.jpg", kind: "tall",   label: "05 · MASSACRES",                coords: "Intervention" },
     ],
   },
 ];
@@ -1028,7 +1209,7 @@ window.BIO = BIO;
 
 </script>
 <script>
-/* app.js — portfolio V2 renderer. Vanilla JS, no framework.
+/* app.js — portfolio V3 renderer. Vanilla JS, no framework.
    "The architect's worktable": everything is drawn from PROJECTS + BIO,
    then hand-drawn SVG doodles animate themselves on scroll. */
 (function () {
@@ -1036,6 +1217,12 @@ window.BIO = BIO;
   var PROJECTS = window.PROJECTS || [];
   var BIO = window.BIO || {};
   var YEAR = new Date().getFullYear();
+  // "established" is a fixed fact, not "the current year" — matches the
+  // earliest year already shown on this page (the hero dimline's "2019 —
+  // {YEAR}" span, BIO.experience). Unlike YEAR above, this must NOT be
+  // computed from Date(), or the badge silently claims a new founding year
+  // every January.
+  var EST_YEAR = 2019;
 
   // Contact details are base64 in data.js and assembled here at runtime, so
   // the plain email/phone never appear in the static HTML that address-
@@ -1054,7 +1241,7 @@ window.BIO = BIO;
   function esc(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
   function attr(s) { return esc(s); }
 
@@ -1143,21 +1330,6 @@ window.BIO = BIO;
     },
   };
 
-  /* ── media distribution: hyperlapse & landscape solo, others pair ─ */
-  function mediaRows(media) {
-    var rows = [], buf = [];
-    function flush() {
-      while (buf.length) { rows.push(buf.splice(0, 2)); }
-    }
-    media.forEach(function (m) {
-      var solo = m.hyperlapse || m.kind === "cinema" || m.kind === "wide";
-      if (solo) { flush(); rows.push([m]); }
-      else { buf.push(m); if (buf.length === 2) flush(); }
-    });
-    flush();
-    return rows;
-  }
-
   function mediaFigure(m) {
     if (m.hyperlapse) {
       return '<figure class="hyperlapse" data-hl="' + attr(JSON.stringify(m)) + '">' +
@@ -1173,8 +1345,20 @@ window.BIO = BIO;
         '</div></figure>';
     }
     var kindCls = { wide: "media-wide", tall: "media-tall", square: "media-square", cinema: "media-cinema" }[m.kind] || "media-wide";
+    // images carry draggable="false" so a click-and-drag pan over a photo never
+    // starts the browser's native image-drag (ghost image) — see initHStrip too.
+    var expandBtn = m.expand
+      ? '<button class="media-expand" type="button" data-full="' + attr(m.src) + '" data-label="' +
+        attr(m.label) + '" data-coords="' + attr(m.coords || "") + '" aria-label="Expand image to full size">' +
+        '<span class="media-expand-veil" aria-hidden="true"></span>' +
+        '<span class="media-expand-tag t-hand">expand to see details ' +
+        '<span class="media-expand-icon" aria-hidden="true">⤢</span></span>' +
+        '</button>'
+      : "";
     var inner = m.src
-      ? '<div class="media-frame ' + kindCls + '"><img src="' + attr(m.src) + '" alt="' + attr(m.label) + '" loading="lazy" decoding="async"></div>'
+      ? '<div class="media-frame ' + kindCls + (m.expand ? ' media-frame--expand' : '') + '">' +
+        '<img src="' + attr(m.src) + '" alt="' + attr(m.label) + '" loading="lazy" decoding="async" draggable="false">' +
+        expandBtn + '</div>'
       : '<div class="media-frame ' + kindCls + ' media-ph"><span class="t-hand">' + esc(m.label) + '</span>' +
         '<span class="t-mono-sm">image to come</span></div>';
     // HDR gain-map stills render static (no reveal opacity, no tilt/scale) so
@@ -1182,14 +1366,6 @@ window.BIO = BIO;
     var figCls = m.hdr ? "media-fig media-fig--hdr" : "media-fig reveal";
     return '<figure class="' + figCls + '">' + inner +
       '<figcaption class="drop-cap"><span>' + esc(m.label) + '</span><span>' + esc(m.coords || "") + '</span></figcaption></figure>';
-  }
-
-  function mediaBlock(media) {
-    if (!media || !media.length) return "";
-    return '<div class="project-media">' + mediaRows(media).map(function (row) {
-      return '<div class="row" style="grid-template-columns:repeat(' + row.length + ',1fr)">' +
-        row.map(mediaFigure).join("") + '</div>';
-    }).join("") + '</div>';
   }
 
   /* ── sections ─────────────────────────────────────────────────── */
@@ -1209,7 +1385,7 @@ window.BIO = BIO;
     return '<section class="hero" id="top">' +
       '<div class="kicker">' +
       '<span class="t-mono-sm">Architecture · BIM coordination · ' + esc(BIO.location) + '</span>' +
-      '<span class="t-hand t-hand--ink">est. ' + esc(YEAR) + '</span></div>' +
+      '<span class="t-hand t-hand--ink kicker-est">est. ' + esc(EST_YEAR) + '</span></div>' +
 
       '<div class="h1-wrap reveal">' +
       '<h1>' + esc(BIO.name) + '</h1>' +
@@ -1232,10 +1408,13 @@ window.BIO = BIO;
       '<span class="dim-label t-mono-sm">' + PROJECTS.length + ' projects · 2019 — ' + esc(YEAR) + '</span>' +
       D.dim() + '</div>' +
 
-      '<div class="skyline">' + D.skyline() + '</div>' +
-
+      // the scroll prompt comes before the (purely decorative) skyline so it
+      // reliably lands within the first viewport — previously it sat below
+      // the skyline and was routinely scrolled out of view on ~800px windows
       '<div class="scrollcue reveal" style="--d:420ms"><span class="t-hand">scroll — the drawings unfold</span>' +
       D.arrowDown() + '</div>' +
+
+      '<div class="skyline">' + D.skyline() + '</div>' +
       '</section>';
   }
   function chip(href, label, ext) {
@@ -1249,7 +1428,7 @@ window.BIO = BIO;
       '<div class="lhs reveal">' +
       '<figure class="portrait-fig">' +
       '<span class="tape tape--tl"></span><span class="tape tape--tr"></span>' +
-      '<img src="assets/portrait.jpg" alt="' + attr(BIO.name) + '">' +
+      '<img src="assets/portrait.jpg" alt="' + attr(BIO.name) + '" width="1080" height="1440" loading="lazy" decoding="async">' +
       '<figcaption class="drop-cap"><span>Portrait</span><span>' + esc(BIO.location) + ' · ' + esc(YEAR) + '</span></figcaption>' +
       '</figure>' +
       '<div class="portrait-anno">' + D.arrow("doodle--ink") + '<span class="t-hand t-hand--ink">hello!</span></div>' +
@@ -1325,13 +1504,22 @@ window.BIO = BIO;
       panels += '<div class="hpanel hpanel--media">' + mediaFigure(m) + '</div>';
     });
     panels += '<div class="hpanel hpanel--feats">' + feats + interventions + '</div>';
+    var panelCount = restMedia.length + 2; // text panel + each image + feats panel
 
     var horiz =
       '<div class="proj-h">' +
-      '<div class="proj-h-cue"><span class="t-hand">drag, or scroll sideways</span>' +
+      // two copy variants, CSS-swapped by pointer type: "drag" is a mouse
+      // verb and there's no sideways scrollbar to "scroll" on a touchscreen
+      '<div class="proj-h-cue"><span class="t-hand cue-mouse">drag, or scroll sideways</span>' +
+      '<span class="t-hand cue-touch">swipe sideways</span>' +
       '<span class="cue-arrow" aria-hidden="true">→</span></div>' +
       '<div class="proj-h-view"><div class="proj-h-track">' + panels + '</div></div>' +
       '<div class="proj-h-foot">' +
+      // live position readout, kept in sync with the scroll thread by bar()
+      // in initHStrip — tells you how much is in here before you commit to
+      // panning through it. Decorative/redundant with the accessible strip
+      // labeling (aria-label + arrow-key nav), so it's hidden from AT.
+      '<span class="proj-h-count t-mono-sm" aria-hidden="true">01 / ' + String(panelCount).padStart(2, "0") + '</span>' +
       '<span class="proj-h-bar" title="Jump to position">' +
       '<svg class="hbar-svg hbar-track" viewBox="0 0 1000 12" preserveAspectRatio="none" aria-hidden="true"><path d="M3 6 C 110 4, 220 8, 330 6 C 440 4, 550 8, 660 6 C 770 4, 880 8, 997 6"/></svg>' +
       '<svg class="hbar-svg hbar-fill" viewBox="0 0 1000 12" preserveAspectRatio="none" aria-hidden="true"><path d="M3 6 C 110 4, 220 8, 330 6 C 440 4, 550 8, 660 6 C 770 4, 880 8, 997 6"/></svg>' +
@@ -1420,6 +1608,7 @@ window.BIO = BIO;
       ["Studio", '<span>Aachen · NRW · Germany</span>', ""],
     ];
     return '<section class="section contact" id="contact">' +
+      '<h2 class="sr-only">Contact</h2>' +
       '<div class="section-head"><span class="meta t-mono-sm">§ 04 · Contact</span>' +
       '<span class="counter">04 / 04</span></div>' +
       '<div class="contact-grid">' +
@@ -1432,8 +1621,9 @@ window.BIO = BIO;
       '<div class="contact-list">' +
       rows.map(function (r) {
         var copy = r[2]
-          ? '<span class="copy" data-ck="' + attr(r[2]) + '">copy</span>'
-          : '<span class="copy">↗</span>';
+          ? '<button type="button" class="copy" data-ck="' + attr(r[2]) +
+            '" aria-label="Copy ' + (r[2] === "email" ? "email address" : "phone number") + '">copy</button>'
+          : '<span class="copy" aria-hidden="true">↗</span>';
         return '<div class="contact-row reveal"><span class="k">' + esc(r[0]) + '</span>' +
           '<span class="v">' + r[1] + '</span>' + copy + '</div>';
       }).join("") +
@@ -1449,8 +1639,11 @@ window.BIO = BIO;
 
   /* ── HDR-safe hyperlapse (plain <img> double-buffer, never canvas) ─ */
   function initHyperlapse(figure) {
+    var noop = function () {};
     var cfg;
-    try { cfg = JSON.parse(figure.getAttribute("data-hl")); } catch (e) { return function () {}; }
+    // callers iterate the returned scrubbers calling .measure()/.update() —
+    // the failure path must return the same shape, or every scroll frame throws
+    try { cfg = JSON.parse(figure.getAttribute("data-hl")); } catch (e) { return { measure: noop, update: noop }; }
     var A = figure.querySelector(".hl-a"), B = figure.querySelector(".hl-b");
     var counter = figure.querySelector(".hl-counter");
     var sticky = figure.querySelector(".hl-sticky");
@@ -1473,6 +1666,47 @@ window.BIO = BIO;
       if (counter) counter.textContent = String(i + 1).padStart(3, "0") + " / " + String(n).padStart(3, "0");
     }
     front.src = url(idxs[0]); loaded[0] = true; setCounter(0);
+
+    // On touch devices (and explicit data-saver requests) don't silently pull
+    // ~n frames × ~1.3MB (this sequence: ~100MB) over what may be a metered
+    // connection — gate the preload behind a tap. Desktop keeps the original
+    // auto-preload-near-viewport behavior.
+    var stage = figure.querySelector(".hl-stage");
+    var gated = window.matchMedia("(hover: none) and (pointer: coarse)").matches ||
+      (navigator.connection && navigator.connection.saveData);
+    var gateOpened = !gated;
+    if (gated && stage) {
+      figure.classList.add("hl-gated"); // hides the "scrub me" hint until opened (see CSS)
+      var gateBtn = document.createElement("button");
+      gateBtn.type = "button";
+      gateBtn.className = "media-expand hl-gate";
+      gateBtn.setAttribute("aria-label", "Load the flythrough image sequence");
+      gateBtn.innerHTML =
+        '<span class="media-expand-veil" aria-hidden="true"></span>' +
+        '<span class="media-expand-tag t-hand">tap to load flythrough<span class="hl-gate-size"></span></span>';
+      stage.appendChild(gateBtn);
+      // Best-effort size estimate from the frame already in flight (Resource
+      // Timing on the same-origin request) — no hardcoded guess, and it stays
+      // correct if the images are ever recompressed. Silently omitted if the
+      // browser doesn't report it (e.g. an ad-blocker, or a cached response).
+      var sizeEl = gateBtn.querySelector(".hl-gate-size");
+      function showEstimate() {
+        try {
+          var entries = performance.getEntriesByName(front.src);
+          var e = entries && entries[entries.length - 1];
+          var bytes = e && (e.transferSize || e.encodedBodySize);
+          if (bytes) sizeEl.textContent = " · ~" + Math.round(bytes * n / 1024 / 1024) + " MB";
+        } catch (err) {}
+      }
+      if (front.complete) showEstimate();
+      else front.addEventListener("load", showEstimate, { once: true });
+      gateBtn.addEventListener("click", function () {
+        gateOpened = true;
+        figure.classList.remove("hl-gated");
+        gateBtn.remove();
+        preload();
+      });
+    }
 
     function preload() {
       if (preloading) return; preloading = true;
@@ -1530,7 +1764,7 @@ window.BIO = BIO;
         if (reduced) return;
         var r = figure.getBoundingClientRect();
         var vh = window.innerHeight;
-        if (r.top < vh * 1.5 && r.bottom > -vh * 0.5) preload();
+        if (gateOpened && r.top < vh * 1.5 && r.bottom > -vh * 0.5) preload();
         var p = Math.min(1, Math.max(0, (stickyTopPx - r.top) / travel));
         // Freeze the drafting grid while scrubbing WITHOUT per-frame JS (which
         // jitters against compositor scroll): flip the background to viewport-
@@ -1560,32 +1794,70 @@ window.BIO = BIO;
     };
   }
 
-  /* ── horizontal project scroll: NATIVE overflow-x (horizontal trackpad /
-     shift-wheel) plus click-and-drag to pan. The page keeps scrolling
-     vertically — no hijacking, no preventDefault on wheel. ── */
+  /* ── horizontal project scroll. Desktop: strip is overflow:hidden so vertical
+     wheel stays native (page scrolls, never trapped); horizontal pan = drag +
+     a passive wheel handler. Touch: native overflow-x:auto finger-swipe. ── */
   function initHStrip(wrap) {
     var view = wrap.querySelector(".proj-h-view");
     if (!view) return;
     var barEl = wrap.querySelector(".proj-h-bar");
     var fill = wrap.querySelector(".hbar-fill");
     var reset = wrap.querySelector(".proj-h-reset");
+    var countEl = wrap.querySelector(".proj-h-count");
+    // counted from the live DOM (not passed in) so this stays correct even if
+    // the panel markup changes later — one source of truth
+    var panelCount = wrap.querySelectorAll(".hpanel").length;
     // click-and-drag to pan (mouse); native trackpad / shift-wheel also work
-    var down = false, startX = 0, startLeft = 0, moved = false;
+    var down = false, startX = 0, startLeft = 0, moved = false, pid = 0;
     view.addEventListener("pointerdown", function (e) {
-      if (e.pointerType === "touch") return; // native touch scroll handles itself
-      down = true; moved = false; startX = e.clientX; startLeft = view.scrollLeft;
-      view.classList.add("dragging");
-      try { view.setPointerCapture(e.pointerId); } catch (err) {}
+      // Where the strip scrolls natively by touch (overflow-x:auto via the
+      // coarse-pointer media query), let it. Everywhere else — including
+      // hybrid touchscreen laptops, which get the desktop overflow:hidden —
+      // JS drives touch pans too (touch-action:pan-y keeps vertical native).
+      if (e.pointerType === "touch" && getComputedStyle(view).overflowX === "auto") return;
+      down = true; moved = false; startX = e.clientX; startLeft = view.scrollLeft; pid = e.pointerId;
+      // NB: don't setPointerCapture here — capturing on pointerdown retargets the
+      // follow-up click to this view, so clicks on children (e.g. the expand
+      // button) never reach them. Capture only once a real drag begins.
     });
     view.addEventListener("pointermove", function (e) {
       if (!down) return;
+      // released outside the strip before capture kicked in (≤3px move) —
+      // don't keep panning on a button-less re-entry
+      if (e.pointerType === "mouse" && e.buttons === 0) return end();
       var dx = e.clientX - startX;
-      if (Math.abs(dx) > 3) moved = true;
-      view.scrollLeft = startLeft - dx;
+      if (!moved && Math.abs(dx) > 3) {
+        moved = true;
+        view.classList.add("dragging");
+        try { view.setPointerCapture(pid); } catch (err) {}
+      }
+      if (moved) view.scrollLeft = startLeft - dx;
     });
     function end() { down = false; view.classList.remove("dragging"); }
     view.addEventListener("pointerup", end);
     view.addEventListener("pointercancel", end);
+    // Belt-and-suspenders with draggable="false": cancel any native drag (image
+    // ghost, text selection) so a click-and-drag pan works over photos too.
+    view.addEventListener("dragstart", function (e) { e.preventDefault(); });
+    // The strip is overflow:hidden on desktop (see CSS), so vertical wheel is
+    // left FULLY native — it passes straight to the page, keeping its momentum
+    // and never getting trapped, mid-strip or at the ends. We only step in for
+    // horizontal-intent wheels (shift-wheel / horizontal trackpad) to pan the
+    // strip. Passive (no preventDefault) → zero cost to the native vertical path.
+    view.addEventListener("wheel", function (e) {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) view.scrollLeft += e.deltaX;
+    }, { passive: true });
+    // keyboard access: the strip is overflow:hidden on desktop, so without this
+    // a keyboard-only user has no way to pan it (programmatic scroll still works
+    // on hidden overflow). Tab to the strip, then arrow keys.
+    view.setAttribute("tabindex", "0");
+    view.setAttribute("role", "region");
+    view.setAttribute("aria-label", "Project details and gallery — use left and right arrow keys to pan");
+    view.addEventListener("keydown", function (e) {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      e.preventDefault();
+      view.scrollBy({ left: e.key === "ArrowRight" ? 260 : -260, behavior: "smooth" });
+    });
     // a pan shouldn't register as a click on whatever was under the cursor
     view.addEventListener("click", function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); } }, true);
     // built-in horizontal progress bar + back-to-start (per modusforma)
@@ -1594,6 +1866,10 @@ window.BIO = BIO;
       var p = max > 0 ? Math.min(1, Math.max(0, view.scrollLeft / max)) : 0;
       if (fill) fill.style.clipPath = "inset(0 " + ((1 - p) * 100).toFixed(2) + "% 0 0)";
       if (reset) reset.classList.toggle("show", view.scrollLeft > 8);
+      if (countEl && panelCount > 1) {
+        var idx = Math.min(panelCount, Math.round(p * (panelCount - 1)) + 1);
+        countEl.textContent = String(idx).padStart(2, "0") + " / " + String(panelCount).padStart(2, "0");
+      }
     }
     view.addEventListener("scroll", bar, { passive: true });
     window.addEventListener("resize", bar);
@@ -1610,6 +1886,121 @@ window.BIO = BIO;
     });
   }
 
+  /* ── full-size image viewer: opens a flagged image at 1:1, scrollable.
+     Built once, lazily, then reused. Drag-to-pan + wheel/scrollbar + Esc. ── */
+  function initLightbox() {
+    var box = document.createElement("div");
+    box.className = "lightbox";
+    box.setAttribute("hidden", "");
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-modal", "true");
+    box.setAttribute("aria-label", "Full-size image viewer");
+    box.innerHTML =
+      '<div class="lightbox-bar">' +
+      '<span class="lightbox-cap"><span class="lb-label"></span>' +
+      '<span class="lb-coords t-mono"></span></span>' +
+      '<span class="lightbox-actions">' +
+      '<button class="lightbox-zoom hd-box" type="button"></button>' +
+      '<button class="lightbox-close hd-box" type="button" aria-label="Close full-size view">close ✕</button>' +
+      '</span>' +
+      '</div>' +
+      // tabindex → the scroll region is keyboard-reachable, so arrow keys pan the image
+      '<div class="lightbox-scroll" tabindex="0" aria-label="Image, scrollable at full resolution"><img class="lightbox-img" alt="" draggable="false"></div>';
+    document.body.appendChild(box);
+
+    var scroll = box.querySelector(".lightbox-scroll");
+    var img = box.querySelector(".lightbox-img");
+    var lbLabel = box.querySelector(".lb-label");
+    var lbCoords = box.querySelector(".lb-coords");
+    var zoomBtn = box.querySelector(".lightbox-zoom");
+    var lastFocus = null;
+    var fitMode = false;
+    // phones/tablets: an oversized image opening at 1:1 is disorienting (you
+    // need to scroll both axes to even see it once). Default those to
+    // fit-to-width; desktop keeps the "see every pixel" 1:1 default. Either
+    // is one tap/click away via the toggle button.
+    var TOUCH_OR_SMALL = "(max-width: 760px), (hover: none) and (pointer: coarse)";
+
+    function setFit(fit) {
+      fitMode = fit;
+      box.classList.toggle("lb-fit", fit);
+      zoomBtn.textContent = fit ? "1:1" : "Fit";
+      zoomBtn.setAttribute("aria-label", fit ? "Switch to full-resolution 1:1 view" : "Switch to fit-to-screen view");
+    }
+    zoomBtn.addEventListener("click", function () {
+      setFit(!fitMode);
+      scroll.scrollTop = 0; scroll.scrollLeft = 0;
+    });
+
+    function open(full, label, coords) {
+      img.src = full; img.alt = label || "";
+      lbLabel.textContent = label || "";
+      lbCoords.textContent = coords ? " · " + coords : "";
+      box.removeAttribute("hidden");
+      // locked on BOTH html and body: html is the page's actual scroller (its
+      // overflow-y is auto), so body.lb-open alone left the page scrollable
+      // behind the lightbox — the wheel-bleed bug.
+      document.documentElement.classList.add("lb-open");
+      document.body.classList.add("lb-open");
+      setFit(window.matchMedia(TOUCH_OR_SMALL).matches);
+      // start at the top-left so tall/wide images reveal from a known origin
+      scroll.scrollTop = 0; scroll.scrollLeft = 0;
+      lastFocus = document.activeElement;
+      box.querySelector(".lightbox-close").focus();
+    }
+    function close() {
+      box.setAttribute("hidden", "");
+      document.documentElement.classList.remove("lb-open");
+      document.body.classList.remove("lb-open");
+      img.removeAttribute("src");
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    }
+
+    box.querySelector(".lightbox-close").addEventListener("click", close);
+    // click on the dimmed backdrop (not the image) closes
+    scroll.addEventListener("click", function (e) { if (e.target === scroll) close(); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !box.hasAttribute("hidden")) close();
+    });
+    // focus trap: aria-modal alone doesn't stop Tab from wandering into the
+    // page behind — cycle between the three focusables (zoom → close → image)
+    box.addEventListener("keydown", function (e) {
+      if (e.key !== "Tab") return;
+      var first = zoomBtn, last = scroll;
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
+
+    // drag-to-pan inside the viewer (mouse) — same gesture as the strip
+    var down = false, sx = 0, sy = 0, stop = 0, slft = 0, moved = false;
+    scroll.addEventListener("pointerdown", function (e) {
+      if (e.pointerType === "touch") return;
+      down = true; moved = false; sx = e.clientX; sy = e.clientY;
+      stop = scroll.scrollTop; slft = scroll.scrollLeft;
+      scroll.classList.add("dragging");
+      try { scroll.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    scroll.addEventListener("pointermove", function (e) {
+      if (!down) return;
+      var dx = e.clientX - sx, dy = e.clientY - sy;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+      scroll.scrollTop = stop - dy; scroll.scrollLeft = slft - dx;
+    });
+    function pend() { down = false; scroll.classList.remove("dragging"); }
+    scroll.addEventListener("pointerup", pend);
+    scroll.addEventListener("pointercancel", pend);
+    scroll.addEventListener("dragstart", function (e) { e.preventDefault(); });
+
+    // delegated open trigger. The strip's capture-phase click handler already
+    // swallows clicks that were really pans, so a drag never opens the viewer.
+    document.addEventListener("click", function (e) {
+      var btn = e.target.closest && e.target.closest(".media-expand");
+      if (!btn) return;
+      e.preventDefault();
+      open(btn.getAttribute("data-full"), btn.getAttribute("data-label"), btn.getAttribute("data-coords"));
+    });
+  }
+
   /* ── scroll-driven systems ────────────────────────────────────── */
   function wire() {
     var topbarEl = document.getElementById("topbar");
@@ -1620,6 +2011,7 @@ window.BIO = BIO;
     var hls = [].slice.call(document.querySelectorAll(".hyperlapse")).map(initHyperlapse);
     var scrollers = hls;
     [].slice.call(document.querySelectorAll(".proj-h")).forEach(initHStrip);
+    initLightbox();
     // cache element refs once — getElementById on every scroll frame (4
     // sections + work + 6 projects) was needless per-frame churn.
     var sectionEls = SECTIONS.map(function (s) { return document.getElementById(s.id); });
@@ -1634,11 +2026,16 @@ window.BIO = BIO;
     }, { threshold: 0.16, rootMargin: "0px 0px -6% 0px" });
     document.querySelectorAll(".reveal, .draw, .lang-row").forEach(function (n) { io.observe(n); });
 
-    // project-nav: jump on click
+    // project-nav: jump on click (li made focusable → Enter/Space work too)
     pnavItems.forEach(function (li) {
+      li.setAttribute("tabindex", "0");
+      li.setAttribute("role", "button");
       li.addEventListener("click", function () {
         var t = document.getElementById(li.getAttribute("data-pnav"));
         if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      li.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); li.click(); }
       });
     });
 
@@ -1650,14 +2047,29 @@ window.BIO = BIO;
     document.querySelectorAll(".js-tel").forEach(function (a) {
       a.addEventListener("click", function (e) { e.preventDefault(); location.href = "te" + "l:" + PHONE.replace(/\s/g, ""); });
     });
-    // copy buttons (value assembled from key, never stored in a DOM attribute)
+    // copy buttons (value assembled from key, never stored in a DOM attribute).
+    // navigator.clipboard only exists in secure contexts (https/localhost) —
+    // fall back to a hidden textarea + execCommand elsewhere, and only show
+    // "copied!" when the write actually succeeded.
+    function copyText(t) {
+      if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t);
+      return new Promise(function (res, rej) {
+        var ta = document.createElement("textarea");
+        ta.value = t; ta.setAttribute("readonly", "");
+        ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select();
+        var ok = false;
+        try { ok = document.execCommand("copy"); } catch (e) {}
+        document.body.removeChild(ta);
+        ok ? res() : rej(new Error("copy failed"));
+      });
+    }
     document.querySelectorAll("[data-ck]").forEach(function (b) {
       b.addEventListener("click", function () {
-        try {
-          navigator.clipboard.writeText(b.getAttribute("data-ck") === "email" ? EMAIL : PHONE);
+        copyText(b.getAttribute("data-ck") === "email" ? EMAIL : PHONE).then(function () {
           var prev = b.textContent; b.textContent = "copied!"; b.classList.add("did");
           setTimeout(function () { b.textContent = prev; b.classList.remove("did"); }, 1400);
-        } catch (e) {}
+        }, function () {});
       });
     });
     var totop = document.getElementById("totop");
@@ -1711,10 +2123,14 @@ window.BIO = BIO;
   function mount() {
     var root = document.getElementById("root");
     root.innerHTML =
+      '<a class="skip-link" href="#main">Skip to content</a>' +
       '<div class="grid-freeze" aria-hidden="true"></div>' +
       '<div class="progress">' + D.progress() + '</div>' +
       topbar() +
-      '<main class="page">' + hero() + about() + work() + cv() + contact() + '</main>' +
+      // tabindex="-1": makes the jump target itself focusable, so activating
+      // the skip link continues Tab order from here instead of restarting at
+      // the top of the document (anchor-jump alone doesn't move focus)
+      '<main class="page" id="main" tabindex="-1">' + hero() + about() + work() + cv() + contact() + '</main>' +
       colophon();
     wire();
   }
