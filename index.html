@@ -534,20 +534,20 @@ html.lb-open, body.lb-open { overflow: hidden; }
   height: 100%;
   object-fit: cover;
   display: block;
-  /* Split by display class. HDR displays get the full gain-map boost —
-     the swap strobe there is handled in initHyperlapse() (both buffers
-     stay permanently visible and swap by z-order, so frames HDR-process
-     while occluded and rise settled; keep transform/opacity/filter/
-     visibility off these imgs, any of them drops or re-arms that pass).
-     Everything else is pinned to the SDR base outright: non-HDR panels
-     can still expose partial EDR headroom (e.g. Macs below max
-     brightness), which re-runs the adaptive gain-map pass per swap and
-     flickers where no boost was ever wanted. */
+  /* Safety pin. The real display-class decision is made once per load in
+     initHyperlapse(): a media query alone can't tell quasi-EDR SDR panels
+     (Macs below max brightness match (dynamic-range: high)) from real HDR
+     ones, and older engines ignore this property entirely. JS adds .hl-hdr
+     only where HDR is reported AND the property provably works — those
+     imgs swap by z-order, permanently visible (any transform/opacity/
+     filter/visibility change drops or re-arms the gain-map pass). Every
+     other display scrubs via .hl-canvas below: drawImage() composites the
+     SDR base rendition in every browser, so no gain-map pass ever runs.
+     ?sdr=1 forces the canvas path for previewing on an HDR machine. */
   dynamic-range-limit: standard;
 }
-@media (dynamic-range: high) {
-  .hl-stage img { dynamic-range-limit: no-limit; }
-}
+.hl-hdr .hl-stage img { dynamic-range-limit: no-limit; }
+.hl-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
 .hl-note { position: absolute; top: -34px; right: 4px; display: flex; align-items: center; gap: 6px; z-index: 3; }
 .hl-note .doodle { width: 26px; height: 32px; }
 /* scrubbing does nothing until the sequence is loaded — don't invite it yet */
@@ -968,6 +968,23 @@ const PROJECTS = [
         scroll: "165vh",
         label: "DRONE HYPERLAPSE — SCROLL TO SCRUB",
         coords: "HDR · P3 gain map",
+        // Mean luma (0–255) of every frame's SDR *base* rendition, measured
+        // in-browser (canvas, 128×72 downsample, Aug 2026). The canvas
+        // scrubber derives per-frame deflicker gains from this — LRTimelapse
+        // smooths the HDR rendition, not the derived SDR bases. The HDR img
+        // path ignores it. Regenerate if the frames are ever re-exported.
+        sdrLuma: [
+          151,150,151,151,152,152,154,154,154,153,153,152,153,153,154,153,153,154,153,153,
+          153,152,153,151,152,153,153,150,149,148,149,150,151,151,150,149,148,148,149,151,
+          149,146,146,147,146,145,145,146,146,145,145,144,146,147,146,145,145,143,144,142,
+          141,143,144,141,142,141,142,141,140,140,140,140,141,141,141,140,139,136,136,134,
+          134,135,134,134,134,133,132,131,128,124,124,124,124,123,125,127,127,126,123,122,
+          120,119,119,119,118,119,120,120,120,119,118,117,116,117,117,116,117,117,117,118,
+          118,118,119,120,121,120,120,120,119,118,117,117,116,115,115,114,114,114,114,114,
+          114,114,113,114,115,115,116,117,118,117,119,119,120,120,120,120,120,121,120,120,
+          121,120,120,121,120,120,118,119,119,119,121,121,122,122,122,120,119,118,119,119,
+          120,121,122,123,124,124,125,125,125,124,123,123,121,121,119,120,119,120,118,118,
+        ],
       },
       // HDR gain-map drone stills. hdr:true → rendered static (no reveal
       // fade, no tilt/scale) so the gain maps display correctly; SDR-only
@@ -1675,10 +1692,84 @@ window.BIO = BIO;
     var cur = 0, want = 0, swapping = false, preloading = false, front = A, back = B;
     var gridB = 0, gridF = 0, gridFrozen = false; // drafting-grid freeze state
 
+    // ── Display-class gate, decided once per load ────────────────────
+    // HDR (img double-buffer) only where the display reports HDR AND the
+    // browser supports dynamic-range-limit, so the CSS pin is enforceable.
+    // Everything else scrubs through a <canvas>: drawImage() composites
+    // the SDR base rendition in every browser — the gain-map pass never
+    // runs, so there is nothing left to strobe. A media query alone can't
+    // make this call: quasi-EDR SDR panels (Macs below max brightness)
+    // match (dynamic-range: high), and older engines ignore the property.
+    // ?sdr=1 forces the canvas path to preview it on an HDR machine.
+    var hdrOK = !/[?&]sdr=1/.test(location.search) &&
+      !!(window.CSS && CSS.supports && CSS.supports("dynamic-range-limit", "standard")) &&
+      !!(window.matchMedia && window.matchMedia("(dynamic-range: high)").matches);
+    var stageEl = figure.querySelector(".hl-stage");
+    var imgsA = new Array(n).fill(null); // retained frames (canvas path draws these)
+    var cv = null, cx = null;
+    if (!hdrOK && stageEl) {
+      cv = document.createElement("canvas");
+      cv.className = "hl-canvas";
+      cv.width = 0; cv.height = 0; // a fresh canvas is 300×150 — drawFrame sizes it from frame 0
+      cv.setAttribute("role", "img");
+      cv.setAttribute("aria-label", A.getAttribute("alt") || "");
+      cx = cv.getContext("2d");
+      if (cx) {
+        A.style.display = "none"; B.style.display = "none";
+        stageEl.appendChild(cv);
+      } else { cv = null; } // no 2d context → stay on the pinned img path
+    }
+    figure.classList.add(cv ? "hl-sdr" : "hl-hdr");
+    figure.setAttribute("data-hl-mode", cv ? "sdr-canvas" : "hdr-img");
+
+    // Canvas-path deflicker: LRTimelapse smooths the HDR rendition, but the
+    // SDR base renditions it derives keep small exposure pulses (measured
+    // 3–6% dips around frames 85–100). gains[] pulls each frame toward a
+    // ±4-frame moving average of its measured mean luma (data.js sdrLuma),
+    // clamped to ±6% so one bad value can never visibly distort a frame.
+    var gains = null;
+    if (cv && cfg.sdrLuma && cfg.sdrLuma.length === last - first + 1) {
+      var L = cfg.sdrLuma;
+      gains = new Array(L.length);
+      for (var gi = 0; gi < L.length; gi++) {
+        var glo = Math.max(0, gi - 4), ghi = Math.min(L.length - 1, gi + 4), gs = 0;
+        for (var gj = glo; gj <= ghi; gj++) gs += L[gj];
+        gains[gi] = Math.min(1.06, Math.max(0.94, (gs / (ghi - glo + 1)) / L[gi]));
+      }
+    }
+    function drawFrame(k) { // cover-fit draw, mirroring the imgs' object-fit
+      var im = imgsA[k];
+      if (!cx || !im || !im.complete || !im.naturalWidth) return false;
+      if (!cv.width) { cv.width = im.naturalWidth; cv.height = im.naturalHeight; }
+      var sc = Math.max(cv.width / im.naturalWidth, cv.height / im.naturalHeight);
+      var sw = cv.width / sc, sh = cv.height / sc;
+      var g = gains ? gains[idxs[k] - first] : 1;
+      // ctx.filter unsupported (old Safari) leaves "none" — draws uncompensated
+      cx.filter = g !== 1 ? "brightness(" + g.toFixed(4) + ")" : "none";
+      cx.drawImage(im, (im.naturalWidth - sw) / 2, (im.naturalHeight - sh) / 2, sw, sh, 0, 0, cv.width, cv.height);
+      cx.filter = "none";
+      return true;
+    }
+    function loadFrame(k, cb) {
+      if (imgsA[k]) return;
+      var im = new Image();
+      imgsA[k] = im;
+      im.onload = im.onerror = function () { loaded[k] = true; if (cb) cb(); };
+      im.src = url(idxs[k]);
+    }
+
     function setCounter(i) {
       if (counter) counter.textContent = String(i + 1).padStart(3, "0") + " / " + String(n).padStart(3, "0");
     }
-    front.src = url(idxs[0]); loaded[0] = true; setCounter(0);
+    var poster; // the frame-0 request (gate's size estimate reads its timing)
+    if (cv) {
+      loadFrame(0, function () { if (cur === 0) drawFrame(0); });
+      poster = imgsA[0];
+    } else {
+      front.src = url(idxs[0]); loaded[0] = true;
+      poster = front;
+    }
+    setCounter(0);
 
     // On touch devices (and explicit data-saver requests) don't silently pull
     // ~n frames × ~1.3MB (this sequence: ~100MB) over what may be a metered
@@ -1705,14 +1796,14 @@ window.BIO = BIO;
       var sizeEl = gateBtn.querySelector(".hl-gate-size");
       function showEstimate() {
         try {
-          var entries = performance.getEntriesByName(front.src);
+          var entries = performance.getEntriesByName(poster.src);
           var e = entries && entries[entries.length - 1];
           var bytes = e && (e.transferSize || e.encodedBodySize);
           if (bytes) sizeEl.textContent = " · ~" + Math.round(bytes * n / 1024 / 1024) + " MB";
         } catch (err) {}
       }
-      if (front.complete) showEstimate();
-      else front.addEventListener("load", showEstimate, { once: true });
+      if (poster.complete) showEstimate();
+      else poster.addEventListener("load", showEstimate, { once: true });
       gateBtn.addEventListener("click", function () {
         gateOpened = true;
         figure.classList.remove("hl-gated");
@@ -1726,9 +1817,19 @@ window.BIO = BIO;
       var next = 1, inflight = 0;
       function pump() {
         while (inflight < 6 && next < n) {
-          var kk = next++; var im = new Image(); inflight++;
-          im.onload = im.onerror = (function (j) { return function () { inflight--; loaded[j] = true; pump(); }; })(kk);
-          im.src = url(idxs[kk]);
+          var kk = next++; inflight++;
+          (function (j) {
+            var im = new Image();
+            imgsA[j] = im; // retained: the canvas path draws from these
+            im.onload = im.onerror = function () {
+              inflight--; loaded[j] = true; pump();
+              // canvas path: catch the display up as frames arrive — the img
+              // path chains inside swap(), but canvas draws are one-shot and
+              // scroll events between loads aren't guaranteed
+              if (cv && nearest(want) !== cur) swap();
+            };
+            im.src = url(idxs[j]);
+          })(kk);
         }
       }
       pump();
@@ -1742,6 +1843,13 @@ window.BIO = BIO;
       return 0;
     }
     function swap() {
+      if (cv) {
+        // SDR canvas path: synchronous draw of the nearest loaded frame —
+        // no buffers, no decode dance, no gain-map pass anywhere.
+        var ct = nearest(want);
+        if (ct !== cur && drawFrame(ct)) { cur = ct; setCounter(cur); }
+        return;
+      }
       if (swapping) return;
       var target = nearest(want);
       if (target === cur) return;
