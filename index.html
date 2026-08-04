@@ -534,13 +534,19 @@ html.lb-open, body.lb-open { overflow: hidden; }
   height: 100%;
   object-fit: cover;
   display: block;
-  /* NO dynamic-range-limit here: pinning 'standard' kills the HDR this
-     sequence was shot for. The scrub strobe (SDR flash per swap on HDR
-     displays) is fixed in initHyperlapse() instead — both buffers stay
-     permanently visible and swap by z-order, so each frame is painted and
-     HDR-processed while occluded, then rises already settled. Keep
-     transform/opacity/filter/visibility off these imgs: any of them drops
-     or re-arms the gain-map pass. */
+  /* Split by display class. HDR displays get the full gain-map boost —
+     the swap strobe there is handled in initHyperlapse() (both buffers
+     stay permanently visible and swap by z-order, so frames HDR-process
+     while occluded and rise settled; keep transform/opacity/filter/
+     visibility off these imgs, any of them drops or re-arms that pass).
+     Everything else is pinned to the SDR base outright: non-HDR panels
+     can still expose partial EDR headroom (e.g. Macs below max
+     brightness), which re-runs the adaptive gain-map pass per swap and
+     flickers where no boost was ever wanted. */
+  dynamic-range-limit: standard;
+}
+@media (dynamic-range: high) {
+  .hl-stage img { dynamic-range-limit: no-limit; }
 }
 .hl-note { position: absolute; top: -34px; right: 4px; display: flex; align-items: center; gap: 6px; z-index: 3; }
 .hl-note .doodle { width: 26px; height: 32px; }
