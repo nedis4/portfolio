@@ -534,13 +534,13 @@ html.lb-open, body.lb-open { overflow: hidden; }
   height: 100%;
   object-fit: cover;
   display: block;
-  /* Pin the scrub to the SDR base rendition. The double-buffer swaps
-     visibility between two <img>s, and browsers apply gain-map HDR boost
-     lazily on first visible paint — so fast scrubs strobe SDR→HDR on every
-     swap on HDR displays. The LRT-deflickered bases are smooth (measured:
-     max frame-to-frame step 1.5%); rendering them everywhere is the only
-     deterministic option. The static aerial stills keep their HDR. */
-  dynamic-range-limit: standard;
+  /* NO dynamic-range-limit here: pinning 'standard' kills the HDR this
+     sequence was shot for. The scrub strobe (SDR flash per swap on HDR
+     displays) is fixed in initHyperlapse() instead — both buffers stay
+     permanently visible and swap by z-order, so each frame is painted and
+     HDR-processed while occluded, then rises already settled. Keep
+     transform/opacity/filter/visibility off these imgs: any of them drops
+     or re-arms the gain-map pass. */
 }
 .hl-note { position: absolute; top: -34px; right: 4px; display: flex; align-items: center; gap: 6px; z-index: 3; }
 .hl-note .doodle { width: 26px; height: 32px; }
@@ -961,7 +961,7 @@ const PROJECTS = [
         aspect: "1557 / 1168",
         scroll: "165vh",
         label: "DRONE HYPERLAPSE — SCROLL TO SCRUB",
-        coords: "München · 2026",
+        coords: "HDR · P3 gain map",
       },
       // HDR gain-map drone stills. hdr:true → rendered static (no reveal
       // fade, no tilt/scale) so the gain maps display correctly; SDR-only
@@ -1343,8 +1343,8 @@ window.BIO = BIO;
         '<div class="hl-sticky">' +
         '<div class="hl-note"><span class="t-hand">scrub me ↓</span>' + D.arrowDown() + '</div>' +
         '<div class="hl-stage" style="aspect-ratio:' + attr(m.aspect || "4 / 3") + '">' +
-        '<img class="hl-a" alt="' + attr(m.label) + '" decoding="async">' +
-        '<img class="hl-b" alt="" aria-hidden="true" decoding="async" style="visibility:hidden">' +
+        '<img class="hl-a" alt="' + attr(m.label) + '" decoding="async" style="z-index:2">' +
+        '<img class="hl-b" alt="" aria-hidden="true" decoding="async" style="z-index:1">' +
         '</div>' +
         '<figcaption class="drop-cap"><span>' + esc(m.label) + '</span>' +
         '<span><span class="hl-counter">001 / ' + (m.frames || 80) + '</span>' +
@@ -1741,12 +1741,20 @@ window.BIO = BIO;
       if (target === cur) return;
       swapping = true;
       function done() {
-        swapping = false;
-        back.style.visibility = "visible";
-        front.style.visibility = "hidden";
-        var t = front; front = back; back = t;
-        cur = target; setCounter(cur);
-        if (nearest(want) !== cur) requestAnimationFrame(swap);
+        // Two rAFs = one full committed frame with the new image decoded and
+        // painted UNDER the current one. Both imgs stay visible the whole
+        // time: hiding one re-arms the browser's lazy gain-map HDR pass, so
+        // its next reveal painted SDR for a frame before the boost landed —
+        // the scrub strobe on HDR displays. Painted-but-occluded content
+        // keeps its HDR state, so raising it by z-order alone doesn't flash.
+        requestAnimationFrame(function () { requestAnimationFrame(function () {
+          back.style.zIndex = "2";
+          front.style.zIndex = "1";
+          var t = front; front = back; back = t;
+          cur = target; setCounter(cur);
+          swapping = false;
+          if (nearest(want) !== cur) swap();
+        }); });
       }
       back.src = url(idxs[target]);
       if (back.decode) back.decode().then(done, done);
