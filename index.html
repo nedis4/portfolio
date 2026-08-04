@@ -535,15 +535,15 @@ html.lb-open, body.lb-open { overflow: hidden; }
   object-fit: cover;
   display: block;
   /* Safety pin. The real display-class decision is made once per load in
-     initHyperlapse(): a media query alone can't tell quasi-EDR SDR panels
-     (Macs below max brightness match (dynamic-range: high)) from real HDR
-     ones, and older engines ignore this property entirely. JS adds .hl-hdr
-     only where HDR is reported AND the property provably works — those
-     imgs swap by z-order, permanently visible (any transform/opacity/
-     filter/visibility change drops or re-arms the gain-map pass). Every
-     other display scrubs via .hl-canvas below: drawImage() composites the
-     SDR base rendition in every browser, so no gain-map pass ever runs.
-     ?sdr=1 forces the canvas path for previewing on an HDR machine. */
+     initHyperlapse(): (dynamic-range: high) alone lies on quasi-EDR SDR
+     Macs (Air confirmed), so JS requires corroboration — 10-bit panel
+     (colorDepth ≥ 30) or (video-dynamic-range: high) — plus provable
+     dynamic-range-limit support before adding .hl-hdr. Those imgs swap by
+     z-order, permanently visible (any transform/opacity/filter/visibility
+     change drops or re-arms the gain-map pass). Every other display
+     scrubs via .hl-canvas below: drawImage() composites the SDR base in
+     every browser, so no gain-map pass ever runs. Overrides: ?sdr=1
+     forces canvas, ?hdr=1 forces HDR, ?hlprobe=1 shows the gate inputs. */
   dynamic-range-limit: standard;
 }
 .hl-hdr .hl-stage img { dynamic-range-limit: no-limit; }
@@ -1693,17 +1693,28 @@ window.BIO = BIO;
     var gridB = 0, gridF = 0, gridFrozen = false; // drafting-grid freeze state
 
     // ── Display-class gate, decided once per load ────────────────────
-    // HDR (img double-buffer) only where the display reports HDR AND the
-    // browser supports dynamic-range-limit, so the CSS pin is enforceable.
-    // Everything else scrubs through a <canvas>: drawImage() composites
-    // the SDR base rendition in every browser — the gain-map pass never
-    // runs, so there is nothing left to strobe. A media query alone can't
-    // make this call: quasi-EDR SDR panels (Macs below max brightness)
-    // match (dynamic-range: high), and older engines ignore the property.
-    // ?sdr=1 forces the canvas path to preview it on an HDR machine.
-    var hdrOK = !/[?&]sdr=1/.test(location.search) &&
+    // HDR (img double-buffer) only where the display is GENUINELY HDR and
+    // dynamic-range-limit provably works. Everything else scrubs through a
+    // <canvas>: drawImage() composites the SDR base rendition in every
+    // browser — the gain-map pass never runs, so nothing can strobe.
+    //
+    // (dynamic-range: high) alone is NOT the answer: macOS reports quasi-
+    // EDR SDR panels as HDR-capable (confirmed on a MacBook Air — it took
+    // the HDR path and flickered; its ?sdr=1 rendering was clean). So the
+    // claim needs corroboration by either signal of a real HDR panel:
+    //   · screen.colorDepth ≥ 30 — 10-bit panel (XDR Macs in Chromium;
+    //     the Air's 8-bit panel reports 24), or
+    //   · (video-dynamic-range: high) — the stricter WebKit-side signal
+    //     (Safari reports colorDepth 24 even on XDR panels).
+    // Overrides: ?sdr=1 forces canvas, ?hdr=1 forces the HDR path,
+    // ?hlprobe=1 appends the gate's inputs to the visible frame counter.
+    var q = location.search;
+    var drHigh = !!(window.matchMedia && window.matchMedia("(dynamic-range: high)").matches);
+    var vdrHigh = !!(window.matchMedia && window.matchMedia("(video-dynamic-range: high)").matches);
+    var deepPanel = !!(window.screen && screen.colorDepth >= 30);
+    var hdrOK = /[?&]hdr=1/.test(q) || (!/[?&]sdr=1/.test(q) &&
       !!(window.CSS && CSS.supports && CSS.supports("dynamic-range-limit", "standard")) &&
-      !!(window.matchMedia && window.matchMedia("(dynamic-range: high)").matches);
+      drHigh && (deepPanel || vdrHigh));
     var stageEl = figure.querySelector(".hl-stage");
     var imgsA = new Array(n).fill(null); // retained frames (canvas path draws these)
     var cv = null, cx = null;
@@ -1721,6 +1732,14 @@ window.BIO = BIO;
     }
     figure.classList.add(cv ? "hl-sdr" : "hl-hdr");
     figure.setAttribute("data-hl-mode", cv ? "sdr-canvas" : "hdr-img");
+    if (/[?&]hlprobe=1/.test(q) && counter) {
+      // param-gated field diagnostics: shows the gate's inputs + verdict in
+      // the caption so a misrouted machine can be reported without DevTools
+      counter.insertAdjacentText("afterend",
+        " · DR" + (drHigh ? 1 : 0) + " VDR" + (vdrHigh ? 1 : 0) +
+        " CD" + ((window.screen && screen.colorDepth) || 0) +
+        " → " + (cv ? "SDR" : "HDR"));
+    }
 
     // Canvas-path deflicker: LRTimelapse smooths the HDR rendition, but the
     // SDR base renditions it derives keep small exposure pulses (measured
