@@ -1706,15 +1706,29 @@ window.BIO = BIO;
     //     the Air's 8-bit panel reports 24), or
     //   · (video-dynamic-range: high) — the stricter WebKit-side signal
     //     (Safari reports colorDepth 24 even on XDR panels).
-    // Overrides: ?sdr=1 forces canvas, ?hdr=1 forces the HDR path,
-    // ?hlprobe=1 appends the gate's inputs to the visible frame counter.
+    // Auto-detection is best-effort ONLY — no signal here is trustworthy
+    // on its own: colorDepth is Chromium-only (WebKit hardcodes 24 even on
+    // XDR), video-dynamic-range is inconsistent, and (dynamic-range: high)
+    // is precisely what quasi-EDR SDR Macs over-report. So a wrong guess
+    // must fail toward SDR (a lost boost) rather than HDR (visible
+    // flicker), and an explicit choice always wins and is remembered:
+    //   ?hdr=1 / ?sdr=1  pin this browser to a path (persisted)
+    //   ?hlreset=1       clear the pin, back to auto-detection
+    //   ?hlprobe=1       show gate inputs + verdict in the caption
     var q = location.search;
     var drHigh = !!(window.matchMedia && window.matchMedia("(dynamic-range: high)").matches);
     var vdrHigh = !!(window.matchMedia && window.matchMedia("(video-dynamic-range: high)").matches);
     var deepPanel = !!(window.screen && screen.colorDepth >= 30);
-    var hdrOK = /[?&]hdr=1/.test(q) || (!/[?&]sdr=1/.test(q) &&
-      !!(window.CSS && CSS.supports && CSS.supports("dynamic-range-limit", "standard")) &&
-      drHigh && (deepPanel || vdrHigh));
+    var propOK = !!(window.CSS && CSS.supports && CSS.supports("dynamic-range-limit", "standard"));
+    var forced = /[?&]hdr=1/.test(q) ? "hdr" : /[?&]sdr=1/.test(q) ? "sdr" : null;
+    var pinned = null; // storage can throw (private mode, blocked cookies)
+    try {
+      if (/[?&]hlreset=1/.test(q)) localStorage.removeItem("hl-dr");
+      else if (forced) localStorage.setItem("hl-dr", forced);
+      pinned = localStorage.getItem("hl-dr");
+    } catch (e) {}
+    var choice = forced || pinned;
+    var hdrOK = choice ? choice === "hdr" : (propOK && drHigh && (deepPanel || vdrHigh));
     var stageEl = figure.querySelector(".hl-stage");
     var imgsA = new Array(n).fill(null); // retained frames (canvas path draws these)
     var cv = null, cx = null;
@@ -1734,10 +1748,16 @@ window.BIO = BIO;
     figure.setAttribute("data-hl-mode", cv ? "sdr-canvas" : "hdr-img");
     if (/[?&]hlprobe=1/.test(q) && counter) {
       // param-gated field diagnostics: shows the gate's inputs + verdict in
-      // the caption so a misrouted machine can be reported without DevTools
+      // the caption so a misrouted machine can be reported without DevTools.
+      // The engine tag matters: colorDepth only means anything on Chromium.
+      var ua = navigator.userAgent;
+      var eng = /Firefox|FxiOS/.test(ua) ? "FF"
+        : /Chrome|Chromium|CriOS|Edg/.test(ua) ? "CR"
+        : /Safari/.test(ua) ? "SF" : "??";
       counter.insertAdjacentText("afterend",
-        " · DR" + (drHigh ? 1 : 0) + " VDR" + (vdrHigh ? 1 : 0) +
+        " · " + eng + " DR" + (drHigh ? 1 : 0) + " VDR" + (vdrHigh ? 1 : 0) +
         " CD" + ((window.screen && screen.colorDepth) || 0) +
+        " P" + (propOK ? 1 : 0) + " pin:" + (pinned || "-") +
         " → " + (cv ? "SDR" : "HDR"));
     }
 
