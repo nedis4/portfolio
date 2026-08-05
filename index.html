@@ -527,34 +527,25 @@ html.lb-open, body.lb-open { overflow: hidden; }
   background: var(--paper-2);
   border: 1.5px solid var(--ink);
 }
-.hl-stage img {
+/* One canvas, not a stack of <img>s. The frames are plain SDR now (the
+   gain maps were removed from the sequence), so there is no reason to
+   keep two large image layers alive and swap them — initHyperlapse()
+   blits an already display-sized bitmap per frame instead, which is both
+   cheaper to composite and bounded in memory. The aerial stills below
+   still carry gain maps and keep their HDR treatment. */
+.hl-canvas {
   position: absolute;
   top: 0; left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
-  /* Safety pin. The real display-class decision is made once per load in
-     initHyperlapse(): (dynamic-range: high) alone lies on quasi-EDR SDR
-     Macs (Air confirmed), so JS requires corroboration — 10-bit panel
-     (colorDepth ≥ 30) or (video-dynamic-range: high) — plus provable
-     dynamic-range-limit support before adding .hl-hdr. Those imgs swap by
-     z-order, permanently visible (any transform/opacity/filter/visibility
-     change drops or re-arms the gain-map pass). Every other display
-     scrubs via .hl-canvas below: drawImage() composites the SDR base in
-     every browser, so no gain-map pass ever runs. Overrides: ?sdr=1
-     forces canvas, ?hdr=1 forces HDR, ?hlprobe=1 shows the gate inputs. */
-  dynamic-range-limit: standard;
 }
-.hl-hdr .hl-stage img { dynamic-range-limit: no-limit; }
-.hl-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
 .hl-note { position: absolute; top: -34px; right: 4px; display: flex; align-items: center; gap: 6px; z-index: 3; }
 .hl-note .doodle { width: 26px; height: 32px; }
-/* scrubbing does nothing until the sequence is loaded — don't invite it yet */
-.hl-gated .hl-note { display: none; }
-.hl-gate { cursor: pointer; }  /* .media-expand's inherited zoom-in cursor doesn't fit a "load" action */
-.hl-gate-size { color: var(--paper); opacity: 0.85; }
-.hl-counter { font-variant-numeric: tabular-nums; }
+/* the tap-to-load gate and the frame counter are gone: touch now streams the
+   sequence exactly like desktop, so there is nothing to gate and no count to
+   announce. Their rules are removed rather than left dangling. */
 
 /* fixed grid layer used to hold the drafting grid still during the hyperlapse
    scrub (cross-browser: iOS ignores background-attachment:fixed, honors this) */
@@ -880,7 +871,11 @@ html.lb-open, body.lb-open { overflow: hidden; }
   .contact-row { grid-template-columns: 70px 1fr auto; }
   .contact-row .v { font-size: 15px; }
   .hl-sticky { top: 106px; }
-  .hyperlapse { height: 150vh; }
+  /* the "scrub me" note is absolutely positioned 34px ABOVE the stage, so it
+     eats into whatever sits above it. Desktop has enough surrounding air for
+     that; the tighter mobile stack does not, and the note crowded the project
+     text. Reserve the note's own height back as margin. */
+  .hyperlapse { height: 150vh; margin-top: 46px; }
   .section { scroll-margin-top: 76px; }
 }
 @media (max-width: 480px) {
@@ -967,24 +962,7 @@ const PROJECTS = [
         aspect: "1557 / 1168",
         scroll: "165vh",
         label: "DRONE HYPERLAPSE — SCROLL TO SCRUB",
-        coords: "HDR · P3 gain map",
-        // Mean luma (0–255) of every frame's SDR *base* rendition, measured
-        // in-browser (canvas, 128×72 downsample, Aug 2026). The canvas
-        // scrubber derives per-frame deflicker gains from this — LRTimelapse
-        // smooths the HDR rendition, not the derived SDR bases. The HDR img
-        // path ignores it. Regenerate if the frames are ever re-exported.
-        sdrLuma: [
-          151,150,151,151,152,152,154,154,154,153,153,152,153,153,154,153,153,154,153,153,
-          153,152,153,151,152,153,153,150,149,148,149,150,151,151,150,149,148,148,149,151,
-          149,146,146,147,146,145,145,146,146,145,145,144,146,147,146,145,145,143,144,142,
-          141,143,144,141,142,141,142,141,140,140,140,140,141,141,141,140,139,136,136,134,
-          134,135,134,134,134,133,132,131,128,124,124,124,124,123,125,127,127,126,123,122,
-          120,119,119,119,118,119,120,120,120,119,118,117,116,117,117,116,117,117,117,118,
-          118,118,119,120,121,120,120,120,119,118,117,117,116,115,115,114,114,114,114,114,
-          114,114,113,114,115,115,116,117,118,117,119,119,120,120,120,120,120,121,120,120,
-          121,120,120,121,120,120,118,119,119,119,121,121,122,122,122,120,119,118,119,119,
-          120,121,122,123,124,124,125,125,125,124,123,123,121,121,119,120,119,120,118,118,
-        ],
+        coords: "München · 2026",
       },
       // HDR gain-map drone stills. hdr:true → rendered static (no reveal
       // fade, no tilt/scale) so the gain maps display correctly; SDR-only
@@ -1353,10 +1331,17 @@ window.BIO = BIO;
         '<path pathLength="1" d="M12 3 L12 21 M4 7 L20 17 M20 7 L4 17"/></svg>';
     },
     bracket: function () {
+      // Rendered as a dashed line, not a solid brace: preserveAspectRatio="none"
+      // stretches this viewBox so hard that the browser applies stroke-dasharray
+      // in viewBox units instead of the normalized pathLength, giving a 1-unit
+      // dash + 1-unit gap = a 2-unit period. That makes the length adjustable in
+      // whole dashes — the span below is y 4→56 (52 units), two units shorter at
+      // each end than the original 2→58, i.e. exactly one dash trimmed top and
+      // bottom. Keep the ends symmetric about the mid vertex at y=30.
       return '<svg class="doodle draw doodle--thin" viewBox="0 0 18 60" ' +
         'preserveAspectRatio="none" aria-hidden="true">' +
-        '<path pathLength="1" d="M14 2 C 6 4, 6 4, 5 14 C 4 24, 9 28, 4 30 ' +
-        'C 9 32, 4 36, 5 46 C 6 56, 6 56, 14 58"/></svg>';
+        '<path pathLength="1" d="M14 4 C 6 6, 6 6, 5 15 C 4 24, 9 28, 4 30 ' +
+        'C 9 32, 4 36, 5 45 C 6 54, 6 54, 14 56"/></svg>';
     },
   };
 
@@ -1364,14 +1349,12 @@ window.BIO = BIO;
     if (m.hyperlapse) {
       return '<figure class="hyperlapse" data-hl="' + attr(JSON.stringify(m)) + '">' +
         '<div class="hl-sticky">' +
-        '<div class="hl-note"><span class="t-hand">scrub me ↓</span>' + D.arrowDown() + '</div>' +
+        '<div class="hl-note"><span class="t-hand">scrub me</span>' + D.arrowDown() + '</div>' +
         '<div class="hl-stage" style="aspect-ratio:' + attr(m.aspect || "4 / 3") + '">' +
-        '<img class="hl-a" alt="' + attr(m.label) + '" decoding="async" style="z-index:2">' +
-        '<img class="hl-b" alt="" aria-hidden="true" decoding="async" style="z-index:1">' +
+        '<canvas class="hl-canvas" role="img" aria-label="' + attr(m.label) + '"></canvas>' +
         '</div>' +
         '<figcaption class="drop-cap"><span>' + esc(m.label) + '</span>' +
-        '<span><span class="hl-counter">001 / ' + (m.frames || 80) + '</span>' +
-        (m.coords ? " · " + esc(m.coords) : "") + '</span></figcaption>' +
+        (m.coords ? '<span>' + esc(m.coords) + '</span>' : '') + '</figcaption>' +
         '</div></figure>';
     }
     var kindCls = { wide: "media-wide", tall: "media-tall", square: "media-square", cinema: "media-cinema" }[m.kind] || "media-wide";
@@ -1674,245 +1657,216 @@ window.BIO = BIO;
     // callers iterate the returned scrubbers calling .measure()/.update() —
     // the failure path must return the same shape, or every scroll frame throws
     try { cfg = JSON.parse(figure.getAttribute("data-hl")); } catch (e) { return { measure: noop, update: noop }; }
-    var A = figure.querySelector(".hl-a"), B = figure.querySelector(".hl-b");
-    var counter = figure.querySelector(".hl-counter");
+    var stage = figure.querySelector(".hl-stage");
+    var cv = figure.querySelector(".hl-canvas");
     var sticky = figure.querySelector(".hl-sticky");
     var gridLayer = document.querySelector(".grid-freeze");
     if (cfg.scroll) figure.style.height = cfg.scroll;
+    // These frames are tagged Display P3. A 2D canvas defaults to sRGB and
+    // silently clips everything outside that gamut — invisible on an sRGB
+    // panel, but on P3 displays (MacBook Pro, iPhone) it flattens exactly the
+    // saturated tones the shot lives on. Measured on this sequence: an sRGB
+    // canvas pins ~0.2% of pixels to the gamut boundary that a P3 canvas
+    // keeps, at identical luma. <img> was colour-managed natively, so this
+    // only became a problem when the scrubber moved to canvas.
+    var cx = null;
+    if (cv && cv.getContext) {
+      try { cx = cv.getContext("2d", { alpha: false, colorSpace: "display-p3" }); } catch (e) {}
+      if (!cx) cx = cv.getContext("2d", { alpha: false });  // pre-P3 browsers
+    }
+    if (!cx) return { measure: noop, update: noop };
 
     var pad = cfg.pad || 0, first = cfg.first || 0, last = cfg.last || 0;
     function url(i) {
       var s = pad ? String(i).padStart(pad, "0") : String(i);
       return cfg.dir + "/" + (cfg.prefix || "") + s + (cfg.suffix || "") + "." + (cfg.ext || "jpg");
     }
-    var n = Math.max(2, Math.min(cfg.frames || 80, last - first + 1));
+
+    // ── Budget the sequence to the device ────────────────────────────
+    // Bytes, decode time and peak memory all scale with frame count, and
+    // a phone has far less of each. Halving the sequence is invisible at
+    // scrub speed but halves all three. deviceMemory is Chromium-only;
+    // absent (Safari) it just doesn't contribute.
+    var small = window.matchMedia("(max-width: 760px)").matches;
+    var lean = small || (navigator.deviceMemory && navigator.deviceMemory <= 4) ||
+      (navigator.connection && navigator.connection.saveData);
+    var nWant = cfg.frames || 80;
+    if (lean) nWant = Math.max(24, Math.round(nWant / 2));
+    var n = Math.max(2, Math.min(nWant, last - first + 1));
     var idxs = [];
     for (var k = 0; k < n; k++) idxs.push(first + Math.round((k * (last - first)) / (n - 1)));
-    var loaded = new Array(n).fill(false);
-    var cur = 0, want = 0, swapping = false, preloading = false, front = A, back = B;
+
+    // Decode straight to display size. The source frames are 1557px wide;
+    // drawn into a ~900px box that is ~3x the pixels — and therefore ~3x
+    // the memory and blit cost — for nothing visible.
+    // Measured live, not frozen at init: initHyperlapse can run before the
+    // stage has its final laid-out width, and reading it too early made a
+    // phone decode full-size frames — precisely the memory blow-up this is
+    // meant to prevent. measure() re-checks and rebuilds the cache if the
+    // layout has moved materially since.
+    function calcDecodeW() {
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // The stage can never be wider than the viewport in this layout, so the
+      // viewport is a hard ceiling. That matters because stage.clientWidth can
+      // read stale-large before layout settles, and an over-large first decode
+      // is the expensive mistake — it is what blows the memory budget on a
+      // phone. Taking the smaller of the two is always safe.
+      var vw = document.documentElement.clientWidth || window.innerWidth || 0;
+      var sw = stage.clientWidth || 0;
+      var css = Math.min(sw || vw, vw || sw);
+      // Layout not measurable yet (a backgrounded tab can report 0 widths for
+      // a while). Guessing high here is the costly mistake — it decodes
+      // full-size frames — so take a conservative middle and let measure()
+      // correct upward once real numbers exist.
+      if (!css) return 800;
+      return Math.max(320, Math.min(1557, Math.round(css * dpr)));
+    }
+    var decodeW = calcDecodeW();
+    // Bumped whenever decodeW changes. A decode already in flight when the
+    // layout settles resolves at the old size; without this its callback
+    // would happily cache and paint that stale bitmap, undoing the resize.
+    var gen = 0;
+
+    // NB: these must be assigned ABOVE the poster's request(0) below. `var`
+    // hoists the declaration but not the assignment, so declaring them further
+    // down left them undefined at poster time — which silently sent the very
+    // first (and most visible) frame down the slow <img> path on every load.
+    var canBitmap = typeof createImageBitmap === "function";
+    // fetch() is blocked on file:// (opaque origin), which silently killed the
+    // whole sequence when the built page was opened straight from disk. <img>
+    // has no such restriction, so it is the fallback wherever fetch can't go —
+    // still downscaled via createImageBitmap, just decoded on the main thread
+    // first, which costs ~6x the main-thread stall (measured 439ms vs 74ms).
+    var canFetch = location.protocol !== "file:";
+
+    // Only frames near the playhead stay decoded; the rest are closed. Cap
+    // by MEMORY, not frame count — a decoded frame is width*height*4 bytes,
+    // so a fixed count means wildly different footprints between a phone
+    // (~0.9 MB/frame) and a retina desktop (~7 MB/frame). Budgeting bytes
+    // keeps both honest: 80 frames held at desktop size would be >500 MB.
+    var aspectH = 0.75;
+    if (cfg.aspect) {
+      var ap = String(cfg.aspect).split("/");
+      if (ap.length === 2 && +ap[0] > 0) aspectH = +ap[1] / +ap[0];
+    }
+    var BUDGET = (lean ? 24 : 96) * 1024 * 1024;
+    var MAX_INFLIGHT = lean ? 3 : 6;
+    var CACHE_MAX = 8;
+    function sizeCache() {
+      var frameBytes = decodeW * Math.round(decodeW * aspectH) * 4;
+      CACHE_MAX = Math.max(6, Math.min(32, Math.floor(BUDGET / frameBytes)));
+    }
+    sizeCache();
+    var bmps = new Map();     // k -> ImageBitmap (or HTMLImageElement fallback)
+    var pending = new Map();  // k -> Promise
+    var cur = -1, want = 0, scrubDir = 1;
     var gridB = 0, gridF = 0, gridFrozen = false; // drafting-grid freeze state
 
-    // ── Display-class gate, decided once per load ────────────────────
-    // HDR (img double-buffer) only where the display is GENUINELY HDR and
-    // dynamic-range-limit provably works. Everything else scrubs through a
-    // <canvas>: drawImage() composites the SDR base rendition in every
-    // browser — the gain-map pass never runs, so nothing can strobe.
-    //
-    // (dynamic-range: high) alone is NOT the answer: macOS reports quasi-
-    // EDR SDR panels as HDR-capable (confirmed on a MacBook Air — it took
-    // the HDR path and flickered; its ?sdr=1 rendering was clean). So the
-    // claim needs corroboration by either signal of a real HDR panel:
-    //   · screen.colorDepth ≥ 30 — 10-bit panel (XDR Macs in Chromium;
-    //     the Air's 8-bit panel reports 24), or
-    //   · (video-dynamic-range: high) — the stricter WebKit-side signal
-    //     (Safari reports colorDepth 24 even on XDR panels).
-    // Auto-detection is best-effort ONLY — no signal here is trustworthy
-    // on its own: colorDepth is Chromium-only (WebKit hardcodes 24 even on
-    // XDR), video-dynamic-range is inconsistent, and (dynamic-range: high)
-    // is precisely what quasi-EDR SDR Macs over-report. So a wrong guess
-    // must fail toward SDR (a lost boost) rather than HDR (visible
-    // flicker), and an explicit choice always wins and is remembered:
-    //   ?hdr=1 / ?sdr=1  pin this browser to a path (persisted)
-    //   ?hlreset=1       clear the pin, back to auto-detection
-    //   ?hlprobe=1       show gate inputs + verdict in the caption
-    var q = location.search;
-    var drHigh = !!(window.matchMedia && window.matchMedia("(dynamic-range: high)").matches);
-    var vdrHigh = !!(window.matchMedia && window.matchMedia("(video-dynamic-range: high)").matches);
-    var deepPanel = !!(window.screen && screen.colorDepth >= 30);
-    var propOK = !!(window.CSS && CSS.supports && CSS.supports("dynamic-range-limit", "standard"));
-    var forced = /[?&]hdr=1/.test(q) ? "hdr" : /[?&]sdr=1/.test(q) ? "sdr" : null;
-    var pinned = null; // storage can throw (private mode, blocked cookies)
-    try {
-      if (/[?&]hlreset=1/.test(q)) localStorage.removeItem("hl-dr");
-      else if (forced) localStorage.setItem("hl-dr", forced);
-      pinned = localStorage.getItem("hl-dr");
-    } catch (e) {}
-    var choice = forced || pinned;
-    var hdrOK = choice ? choice === "hdr" : (propOK && drHigh && (deepPanel || vdrHigh));
-    var stageEl = figure.querySelector(".hl-stage");
-    var imgsA = new Array(n).fill(null); // retained frames (canvas path draws these)
-    var cv = null, cx = null;
-    if (!hdrOK && stageEl) {
-      cv = document.createElement("canvas");
-      cv.className = "hl-canvas";
-      cv.width = 0; cv.height = 0; // a fresh canvas is 300×150 — drawFrame sizes it from frame 0
-      cv.setAttribute("role", "img");
-      cv.setAttribute("aria-label", A.getAttribute("alt") || "");
-      cx = cv.getContext("2d");
-      if (cx) {
-        A.style.display = "none"; B.style.display = "none";
-        stageEl.appendChild(cv);
-      } else { cv = null; } // no 2d context → stay on the pinned img path
-    }
-    figure.classList.add(cv ? "hl-sdr" : "hl-hdr");
-    figure.setAttribute("data-hl-mode", cv ? "sdr-canvas" : "hdr-img");
-    if (/[?&]hlprobe=1/.test(q) && counter) {
-      // param-gated field diagnostics: shows the gate's inputs + verdict in
-      // the caption so a misrouted machine can be reported without DevTools.
-      // The engine tag matters: colorDepth only means anything on Chromium.
-      var ua = navigator.userAgent;
-      var eng = /Firefox|FxiOS/.test(ua) ? "FF"
-        : /Chrome|Chromium|CriOS|Edg/.test(ua) ? "CR"
-        : /Safari/.test(ua) ? "SF" : "??";
-      counter.insertAdjacentText("afterend",
-        " · " + eng + " DR" + (drHigh ? 1 : 0) + " VDR" + (vdrHigh ? 1 : 0) +
-        " CD" + ((window.screen && screen.colorDepth) || 0) +
-        " P" + (propOK ? 1 : 0) + " pin:" + (pinned || "-") +
-        " → " + (cv ? "SDR" : "HDR"));
-    }
+    // No tap-to-load gate: touch behaves exactly like desktop. The old gate
+    // existed because the scrubber bulk-preloaded every frame (~100 MB) the
+    // moment it neared the viewport, which was indefensible on a phone. It
+    // now streams only a short window around the playhead and closes frames
+    // behind it, so a phone fetches what it actually shows — no button, no
+    // decision to make.
+    request(0);   // poster, so the stage is never blank before the first scrub
 
-    // Canvas-path deflicker: LRTimelapse smooths the HDR rendition, but the
-    // SDR base renditions it derives keep small exposure pulses (measured
-    // 3–6% dips around frames 85–100). gains[] pulls each frame toward a
-    // ±4-frame moving average of its measured mean luma (data.js sdrLuma),
-    // clamped to ±6% so one bad value can never visibly distort a frame.
-    var gains = null;
-    if (cv && cfg.sdrLuma && cfg.sdrLuma.length === last - first + 1) {
-      var L = cfg.sdrLuma;
-      gains = new Array(L.length);
-      for (var gi = 0; gi < L.length; gi++) {
-        var glo = Math.max(0, gi - 4), ghi = Math.min(L.length - 1, gi + 4), gs = 0;
-        for (var gj = glo; gj <= ghi; gj++) gs += L[gj];
-        gains[gi] = Math.min(1.06, Math.max(0.94, (gs / (ghi - glo + 1)) / L[gi]));
-      }
-    }
-    function drawFrame(k) { // cover-fit draw, mirroring the imgs' object-fit
-      var im = imgsA[k];
-      if (!cx || !im || !im.complete || !im.naturalWidth) return false;
-      if (!cv.width) { cv.width = im.naturalWidth; cv.height = im.naturalHeight; }
-      var sc = Math.max(cv.width / im.naturalWidth, cv.height / im.naturalHeight);
-      var sw = cv.width / sc, sh = cv.height / sc;
-      var g = gains ? gains[idxs[k] - first] : 1;
-      // ctx.filter unsupported (old Safari) leaves "none" — draws uncompensated
-      cx.filter = g !== 1 ? "brightness(" + g.toFixed(4) + ")" : "none";
-      cx.drawImage(im, (im.naturalWidth - sw) / 2, (im.naturalHeight - sh) / 2, sw, sh, 0, 0, cv.width, cv.height);
-      cx.filter = "none";
-      return true;
-    }
-    function loadFrame(k, cb) {
-      if (imgsA[k]) return;
-      var im = new Image();
-      imgsA[k] = im;
-      im.onload = im.onerror = function () { loaded[k] = true; if (cb) cb(); };
-      im.src = url(idxs[k]);
-    }
-
-    function setCounter(i) {
-      if (counter) counter.textContent = String(i + 1).padStart(3, "0") + " / " + String(n).padStart(3, "0");
-    }
-    var poster; // the frame-0 request (gate's size estimate reads its timing)
-    if (cv) {
-      loadFrame(0, function () { if (cur === 0) drawFrame(0); });
-      poster = imgsA[0];
-    } else {
-      front.src = url(idxs[0]); loaded[0] = true;
-      poster = front;
-    }
-    setCounter(0);
-
-    // On touch devices (and explicit data-saver requests) don't silently pull
-    // ~n frames × ~1.3MB (this sequence: ~100MB) over what may be a metered
-    // connection — gate the preload behind a tap. Desktop keeps the original
-    // auto-preload-near-viewport behavior.
-    var stage = figure.querySelector(".hl-stage");
-    var gated = window.matchMedia("(hover: none) and (pointer: coarse)").matches ||
-      (navigator.connection && navigator.connection.saveData);
-    var gateOpened = !gated;
-    if (gated && stage) {
-      figure.classList.add("hl-gated"); // hides the "scrub me" hint until opened (see CSS)
-      var gateBtn = document.createElement("button");
-      gateBtn.type = "button";
-      gateBtn.className = "media-expand hl-gate";
-      gateBtn.setAttribute("aria-label", "Load the flythrough image sequence");
-      gateBtn.innerHTML =
-        '<span class="media-expand-veil" aria-hidden="true"></span>' +
-        '<span class="media-expand-tag t-hand">tap to load flythrough<span class="hl-gate-size"></span></span>';
-      stage.appendChild(gateBtn);
-      // Best-effort size estimate from the frame already in flight (Resource
-      // Timing on the same-origin request) — no hardcoded guess, and it stays
-      // correct if the images are ever recompressed. Silently omitted if the
-      // browser doesn't report it (e.g. an ad-blocker, or a cached response).
-      var sizeEl = gateBtn.querySelector(".hl-gate-size");
-      function showEstimate() {
-        try {
-          var entries = performance.getEntriesByName(poster.src);
-          var e = entries && entries[entries.length - 1];
-          var bytes = e && (e.transferSize || e.encodedBodySize);
-          if (bytes) sizeEl.textContent = " · ~" + Math.round(bytes * n / 1024 / 1024) + " MB";
-        } catch (err) {}
-      }
-      if (poster.complete) showEstimate();
-      else poster.addEventListener("load", showEstimate, { once: true });
-      gateBtn.addEventListener("click", function () {
-        gateOpened = true;
-        figure.classList.remove("hl-gated");
-        gateBtn.remove();
-        preload();
+    // createImageBitmap decodes off the main thread AND downscales during
+    // decode, so the main thread never touches full-size pixels. Older
+    // Safari lacks the options form — fall back to a plain <img> decode,
+    // which still works, just without the off-thread win.
+    function decodeViaImage(u) {
+      return new Promise(function (res, rej) {
+        var im = new Image();
+        im.onload = function () {
+          if (!canBitmap) return res(im);
+          createImageBitmap(im, { resizeWidth: decodeW, resizeQuality: "medium" })
+            .then(res, function () { res(im); });   // options unsupported → full size
+        };
+        im.onerror = rej;
+        im.src = u;
       });
     }
 
-    function preload() {
-      if (preloading) return; preloading = true;
-      var next = 1, inflight = 0;
-      function pump() {
-        while (inflight < 6 && next < n) {
-          var kk = next++; inflight++;
-          (function (j) {
-            var im = new Image();
-            imgsA[j] = im; // retained: the canvas path draws from these
-            im.onload = im.onerror = function () {
-              inflight--; loaded[j] = true; pump();
-              // canvas path: catch the display up as frames arrive — the img
-              // path chains inside swap(), but canvas draws are one-shot and
-              // scroll events between loads aren't guaranteed
-              if (cv && nearest(want) !== cur) swap();
-            };
-            im.src = url(idxs[j]);
-          })(kk);
-        }
+    function decodeFrame(k) {
+      var u = url(idxs[k]);
+      if (canBitmap && canFetch) {
+        return fetch(u, { cache: "force-cache" })
+          .then(function (r) { return r.ok ? r.blob() : Promise.reject(r.status); })
+          .then(function (b) {
+            return createImageBitmap(b, { resizeWidth: decodeW, resizeQuality: "medium" })
+              .catch(function () { return createImageBitmap(b); }); // options unsupported
+          })
+          .catch(function () { return decodeViaImage(u); });  // blocked/failed fetch
       }
-      pump();
+      return decodeViaImage(u);
     }
-    function nearest(i) {
-      if (loaded[i]) return i;
+
+    function evict() {
+      if (bmps.size <= CACHE_MAX) return;
+      // furthest from the playhead goes first; never drop what's on screen
+      var keys = Array.from(bmps.keys()).sort(function (a, b) {
+        return Math.abs(b - want) - Math.abs(a - want);
+      });
+      for (var i = 0; i < keys.length && bmps.size > CACHE_MAX; i++) {
+        var kk = keys[i];
+        if (kk === cur) continue;
+        var bm = bmps.get(kk);
+        if (bm && bm.close) bm.close();   // frees the decoded pixels immediately
+        bmps.delete(kk);
+      }
+    }
+
+    function paint(k) {
+      var bm = bmps.get(k);
+      if (!bm) return false;
+      var w = bm.width || bm.naturalWidth, h = bm.height || bm.naturalHeight;
+      if (!w || !h) return false;
+      if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+      cx.drawImage(bm, 0, 0, w, h);
+      cur = k;
+      return true;
+    }
+
+    // Nothing decoded at the exact frame yet? Show the closest one we do
+    // have rather than a gap — a scrub that runs ahead of the network
+    // reads as slightly coarse, never as a blank stage.
+    function paintNearest(k) {
+      if (paint(k)) return;
       for (var d = 1; d < n; d++) {
-        if (i - d >= 0 && loaded[i - d]) return i - d;
-        if (i + d < n && loaded[i + d]) return i + d;
+        if (k - d >= 0 && paint(k - d)) return;
+        if (k + d < n && paint(k + d)) return;
       }
-      return 0;
     }
-    function swap() {
-      if (cv) {
-        // SDR canvas path: synchronous draw of the nearest loaded frame —
-        // no buffers, no decode dance, no gain-map pass anywhere.
-        var ct = nearest(want);
-        if (ct !== cur && drawFrame(ct)) { cur = ct; setCounter(cur); }
-        return;
+
+    function request(k) {
+      if (k < 0 || k >= n || bmps.has(k) || pending.has(k)) return;
+      var g = gen;
+      var p = decodeFrame(k).then(function (bm) {
+        pending.delete(k);
+        if (g !== gen) {
+          // decoded at a size the layout has since moved away from: drop it,
+          // but keep pumping — this is the only thing that re-requests the
+          // frame at the new size, and without it the scrubber stalls on
+          // whatever was last painted.
+          if (bm && bm.close) bm.close();
+          pump();
+          return;
+        }
+        bmps.set(k, bm);
+        evict();
+        if (k === want || cur < 0) paint(k);
+        pump();
+      }, function () { pending.delete(k); pump(); });
+      pending.set(k, p);
+    }
+
+    // Fetch a window around the playhead, biased the way the scrub is
+    // moving, so the frames arriving are the ones about to be needed.
+    function pump() {
+      for (var d = 0; d <= 8 && pending.size < MAX_INFLIGHT; d++) {
+        request(want + d * scrubDir);
+        if (d && d <= 2) request(want - d * scrubDir);
       }
-      if (swapping) return;
-      var target = nearest(want);
-      if (target === cur) return;
-      swapping = true;
-      function done() {
-        // Two rAFs = one full committed frame with the new image decoded and
-        // painted UNDER the current one. Both imgs stay visible the whole
-        // time: hiding one re-arms the browser's lazy gain-map HDR pass, so
-        // its next reveal painted SDR for a frame before the boost landed —
-        // the scrub strobe on HDR displays. Painted-but-occluded content
-        // keeps its HDR state, so raising it by z-order alone doesn't flash.
-        requestAnimationFrame(function () { requestAnimationFrame(function () {
-          back.style.zIndex = "2";
-          front.style.zIndex = "1";
-          var t = front; front = back; back = t;
-          cur = target; setCounter(cur);
-          swapping = false;
-          if (nearest(want) !== cur) swap();
-        }); });
-      }
-      back.src = url(idxs[target]);
-      if (back.decode) back.decode().then(done, done);
-      else if (back.complete) done();
-      else { back.onload = done; back.onerror = done; }
     }
     var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -1924,15 +1878,39 @@ window.BIO = BIO;
     function measure() {
       stickyTopPx = parseFloat(getComputedStyle(sticky).top) || 0;
       travel = Math.max(1, figure.offsetHeight - sticky.offsetHeight);
+      // Re-derive the decode size from the settled layout. >20% off means the
+      // cached bitmaps are the wrong resolution — drop them (closing each, so
+      // the pixels are actually freed) and let the window around the playhead
+      // refill at the right size.
+      var w = calcDecodeW();
+      if (Math.abs(w - decodeW) / decodeW > 0.2) {
+        decodeW = w;
+        gen++;              // invalidates decodes already in flight
+        sizeCache();
+        bmps.forEach(function (bm) { if (bm && bm.close) bm.close(); });
+        bmps.clear();
+        cur = -1;
+        pump();
+      }
     }
     measure();
+    // The stage's final width can arrive after init and after load (fonts,
+    // late layout), with no resize event to hang off. Observing the element
+    // itself catches the settle exactly when it happens, so the frames are
+    // decoded at the size they are actually displayed at.
+    if (window.ResizeObserver) new ResizeObserver(measure).observe(stage);
+    // ResizeObserver only delivers during the rendering lifecycle, so a
+    // backgrounded or throttled tab can leave the first (possibly pre-layout)
+    // reading in place. These two are lifecycle-independent and one-shot.
+    window.addEventListener("load", measure, { once: true });
+    setTimeout(measure, 400);
     return {
       measure: measure,
       update: function () {
         if (reduced) return;
         var r = figure.getBoundingClientRect();
         var vh = window.innerHeight;
-        if (gateOpened && r.top < vh * 1.5 && r.bottom > -vh * 0.5) preload();
+        if (r.top < vh * 1.5 && r.bottom > -vh * 0.5) pump();
         var p = Math.min(1, Math.max(0, (stickyTopPx - r.top) / travel));
         // Freeze the drafting grid while scrubbing WITHOUT per-frame JS (which
         // jitters against compositor scroll): flip the background to viewport-
@@ -1956,8 +1934,12 @@ window.BIO = BIO;
           if (gridLayer) gridLayer.style.opacity = "0";
           gridFrozen = false;
         }
-        want = Math.round(p * (n - 1));
-        if (want !== cur) swap();
+        var nw = Math.round(p * (n - 1));
+        if (nw !== want) { scrubDir = nw > want ? 1 : -1; want = nw; }
+        // Paint synchronously from the decoded cache — no decode, no rAF
+        // chain, no layer swap. The draw is a GPU blit of an already
+        // display-sized bitmap, so it keeps up with the compositor.
+        if (want !== cur) { paintNearest(want); pump(); }
       }
     };
   }
