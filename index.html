@@ -258,7 +258,6 @@ a.hd-box, button.hd-box { cursor: pointer; }
 /* ─── Hero ───────────────────────────────────────────────────────── */
 .hero { position: relative; padding: clamp(56px, 9vh, 110px) 0 24px; }
 .hero .kicker { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 26px; }
-.kicker-est { white-space: nowrap; }  /* was wrapping to "est." / "2026" on narrow phones */
 .hero h1 {
   font-size: clamp(44px, 8.2vw, 104px);
   letter-spacing: -0.03em;
@@ -285,6 +284,13 @@ a.hd-box, button.hd-box { cursor: pointer; }
   color: var(--ink-soft);
 }
 .hero .lede b { color: var(--ink); font-weight: 600; }
+/* The hero's availability mark. Same red stamp as a project status, scaled up
+   and straightened a little: at 10.5px and -2.5deg it read as a caption down
+   here rather than the headline claim it is. */
+.hero .avail { margin-top: 26px; }
+.stamp--avail { font-size: 13px; letter-spacing: 0.15em; padding: 10px 17px 9px; rotate: -1.5deg; opacity: 1; }
+@media (max-width: 560px) { .stamp--avail { font-size: 11.5px; letter-spacing: 0.12em; padding: 9px 13px 8px; } }
+
 .hero .facts { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
 .hero .facts .hd-box { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; padding: 8px 14px; }
 .hero .dimline { margin-top: 38px; max-width: 520px; }
@@ -509,7 +515,19 @@ html.lb-open, body.lb-open { overflow: hidden; }
 .project-features { display: grid; grid-template-columns: 120px 1fr; gap: 22px; margin: 34px 0 8px; }
 .project-features ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 32px; }
 .project-features li { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; color: var(--ink-soft); }
-.project-features li .tick { width: 20px; height: 18px; flex-shrink: 0; margin-top: 4px; }
+.project-features li .bullet {
+  /* Sized by measuring the painted glyph, not guessed: the bullet character is
+     only ~0.26 of its em, so 30px yields an 8px dot against the 14px list text
+     (~0.57x) — clearly bigger than the drawn tick it replaced without turning
+     into a blob. 26px gave 7px and read undersized; 40px gave 11px and shouted. */
+  flex: 0 0 14px;        /* a dot needs far less column than the 20px-wide tick did,
+                            so the text sits closer in and the list reads tighter */
+  color: var(--red);     /* the tick's stroke colour, unchanged */
+  font-size: 30px;
+  line-height: 23px;     /* the text's line box is 22.7px at 14px and 24.3px at 15px,
+                            so this centres the dot on line one at either size */
+  text-align: center;
+}
 .interventions ul { grid-template-columns: 1fr; }
 .interventions li b { font-weight: 600; color: var(--ink); }
 
@@ -938,7 +956,7 @@ const PROJECTS = [
     title: "ZAM SPACES",
     subtitle: "Mixed-use urban extension for Munich",
     city: "Munich, Germany",
-    year: "2019 — 2024",
+    year: "2020 — 2021",
     studio: "Störmer Murphy and Partners",
     type: "Mixed-use · Urban extension",
     status: "Completed · 2024",
@@ -958,6 +976,11 @@ const PROJECTS = [
         hyperlapse: true,
         dir: "assets/projects/zam-spaces",
         prefix: "LRT_", suffix: "_2048px", pad: 5, ext: "jpg",
+        // NB: frames and scroll are the SCROLL FEEL, not a performance knob.
+        // Cutting frames (80->56) and lengthening the scroll (165->210vh) does
+        // reduce decode demand, but it makes the image update half as often and
+        // pins the section for longer — which reads as coarse and clumsy, not
+        // smooth. Tune the loading pipeline in app.js instead; leave these.
         first: 0, last: 199, frames: 80,
         aspect: "1557 / 1168",
         scroll: "165vh",
@@ -979,9 +1002,9 @@ const PROJECTS = [
     id: "house-of-knowledge",
     num: "02",
     title: "The House of Knowledge",
-    subtitle: "Adaptive reuse of the former main post office",
+    subtitle: "Adaptive reuse and extension of the former main post office",
     city: "Bochum, Germany",
-    year: "2019 — ongoing",
+    year: "2021 — 2025",
     studio: "Cross architecture",
     type: "Adaptive reuse · Public",
     status: "In construction",
@@ -1001,9 +1024,10 @@ const PROJECTS = [
       "Stepped roof terraces with views toward the Town Hall",
     ],
     media: [
+      { src: "assets/projects/house-of-knowledge-00-aerial.jpg", kind: "wide",  label: "AERIAL VIEW",              coords: "" },
       { src: "assets/projects/house-of-knowledge-01.jpg", kind: "wide",  label: "EXTERIOR · STREET VIEW",         coords: "Bochum" },
-      { src: "assets/projects/house-of-knowledge-02.jpg", kind: "tall",  label: "STEPPED ROOF GARDEN",            coords: "+116.80m" },
-      { src: "assets/projects/house-of-knowledge-03.jpg", kind: "tall",  label: "OPEN SPACE · INTERIOR ATRIUM",   coords: "1.OG" },
+      { src: "assets/projects/house-of-knowledge-02.jpg", kind: "tall",  label: "STEPPED ROOF GARDEN",            coords: "" },
+      { src: "assets/projects/house-of-knowledge-03.jpg", kind: "tall",  label: "OPEN SPACE",                     coords: "" },
     ],
   },
   {
@@ -1012,12 +1036,12 @@ const PROJECTS = [
     title: "Duisburg School Complex",
     subtitle: "Three comprehensive schools across three districts",
     city: "Duisburg, Germany",
-    year: "2021 — 2027",
+    year: "2025 — 2026",
     studio: "Cross architecture",
     type: "Public · Education",
     status: "Ongoing · planned completion 2027",
     program: "Theodor-König, Heinrich-Heine and Gottfried-Wilhelm-Leibniz comprehensive schools",
-    role: "BIM modeling and technical detailing of facade packages, coordination with engineering and specialist consultants",
+    role: "BIM modeling and technical detailing of facade packages, shared BIM project coordination, coordination with engineering and specialist consultants",
     intro:
       "Three schools, three districts, 15,500 m² of new gross floor area — built while the existing schools remain in full operation. A study in phasing and precision.",
     lede:
@@ -1032,7 +1056,7 @@ const PROJECTS = [
       "Construction while schools remain in full operation",
     ],
     media: [
-      { src: "assets/projects/duisburg-01.jpg", kind: "cinema", label: "TKG SCHOOL · CLINKER FACADE",   coords: "Rheinhausen" },
+      { src: "assets/projects/duisburg-01.jpg", kind: "cinema", label: "TKG SCHOOL · CLINKER FACADE",   coords: "" },
       { src: "assets/projects/duisburg-02.jpg", kind: "wide",   label: "HHG SCHOOL · ENTRANCE ELEVATION", coords: "Alt-Hamborn", expand: true },
     ],
   },
@@ -1080,9 +1104,9 @@ const PROJECTS = [
     year: "2020",
     studio: "Störmer Murphy and Partners",
     type: "Mixed-use · Heritage",
-    status: "Planning permission documentation",
+    status: "Two-stage competition",
     program: "Office, residential, public ground floor",
-    role: "Design development, masterplan elaboration, planning permission documentation, graphic representation",
+    role: "Design development, masterplan elaboration, graphic representation",
     intro:
       "One of Frankfurt's most demanding urban sites: a listed heritage complex, transformed into a mixed-use tower that holds a conversation with the building it stands next to.",
     lede:
@@ -1097,7 +1121,6 @@ const PROJECTS = [
     media: [
       { src: "assets/projects/das-praesidium-01.jpg", kind: "wide",   label: "TOWER · STREET VIEW",   coords: "+175.00m" },
       { src: "assets/projects/das-praesidium-02.jpg", kind: "tall",   label: "COURTYARD VIEW",        coords: "Historic frontage" },
-      { src: "assets/projects/das-praesidium-03.jpg", kind: "square", label: "GROUND FLOOR PLAN",     coords: "OKFF ± 0.00" },
       { src: "assets/projects/das-praesidium-04.jpg", kind: "square", label: "MASTERPLAN",            coords: "City block" },
     ],
   },
@@ -1135,7 +1158,6 @@ const PROJECTS = [
     ],
     media: [
       { src: "assets/projects/moabiter-unruhen-01.jpg", kind: "tall",   label: "MUSEUM · INTERIOR PASSAGE",   coords: "Perforated walls" },
-      { src: "assets/projects/moabiter-unruhen-06.jpg", kind: "cinema", label: "STREET SECTION · MUSEUM",      coords: "1:200" },
       { src: "assets/projects/moabiter-unruhen-04.jpg", kind: "wide",   label: "MUSEUM · STREET VIEW",        coords: "Elevation" },
       { src: "assets/projects/moabiter-unruhen-05.jpg", kind: "square", label: "ACCESS TO RAILWAY REMAINS",   coords: "Isometric" },
       { src: "assets/projects/moabiter-unruhen-02.jpg", kind: "square", label: "HISTORICAL SITE · 1910",       coords: "Coal processing" },
@@ -1151,22 +1173,20 @@ const PROJECTS = [
 const BIO = {
   name: "Mariya Benovska",
   role: "Architect MA · Registered architect AKNW",
-  location: "Aachen, Germany",
   // base64-encoded so the plain values never sit in the static HTML source;
   // assembled at runtime in app.js via b64().
-  email64: "bWVAbWFyaXlhLm15",
+  email64: "cG9ydGZvbGlvLXByaXZhdGVAbWFyaWEuYXJjaGk=",
   phone64: "KzQ5IDE3NiAzNjMxNzg4NA==",
+  phoneUa64: "KzM4MCA5NiA2OTQwNDAw",
   linkedin: "linkedin.com/in/mariya-benovska",
   pitch:
-    "Architect working between technical precision and spatial quality — currently leading facade design and BIM coordination on an adaptive reuse project in Bochum.",
+    "Architect (M.A.) with seven years across public buildings of varying scale and complexity — from competition to construction site, with a focus on environmental sustainability and adaptive reuse.",
   about: [
-    "I am an architect with a background in architecture and landscape architecture, holding two master's degrees from DIA Anhalt University (Bauhaus legacy institution) and the Estonian University of Life Sciences. Shortly after graduation, my master thesis “In support of memory” was nominated among the best by Baunetz Campus Germany.",
-    "My work focuses on restrained and precise architecture with a strong attention to material quality, detail and spatial experience. I have worked on projects of different scales — from urban masterplanning and competition design to technical facade development and construction documentation.",
-    "Currently working as Architect and BIM Coordinator at Cross Architecture in Aachen, where I am responsible for facade and roof design, BIM modeling, interdisciplinary coordination with engineering consultants and site supervision on an upscale adaptive reuse project in Bochum, Germany. Registered architect with AKNW.",
-    "I am particularly drawn to high-end design environments where technical precision and spatial quality go hand in hand. I bring a structured and detail-oriented working practice, experience in leading complex coordination within interdisciplinary teams, and a genuine passion for architecture that is both technically rigorous and spatially compelling.",
+    "I work at the intersection of architecture and landscape architecture — a Master’s in each, from DIA (Anhalt University) and the Estonian University of Life Sciences. My thesis, In Support of Memory, recognised by BauNetz Campus, set the direction much of my work has followed since: an interest in adaptive reuse and how buildings can hold onto history rather than erase it.",
+    "I value architecture that speaks quietly rather than loudly, and that carries as much social weight as formal weight. Having worked across nearly every project stage — from competition to construction site — I bring a grounded, collaborative approach that stays close to the bigger idea behind each design.",
   ],
   experience: [
-    { yr: "2021—current", name: "Cross Architecture", role: "Architect · BIM Project Coordinator | Aachen" },
+    { yr: "2021—2026", name: "Cross Architecture", role: "Architect · BIM Project Coordinator | Aachen" },
     { yr: "2019—2021", name: "Störmer Murphy and Partners", role: "Junior architect | Hamburg" },
     { yr: "2019", name: "Fuchshuber Architekten", role: "Intern architect | Leipzig" },
     { yr: "2018", name: "Kauffmann Theilig & Partner", role: "Intern architect | Stuttgart" },
@@ -1203,9 +1223,11 @@ const BIO = {
   ],
   languages: [
     { name: "English", level: "Fluent · C1", v: 90 },
+    // v drives the bar width, so it has to move with the level: N4 sits above
+    // N5's 22 and below "Intermediate" at 55.
+    { name: "Japanese", level: "N4", v: 35 },
     { name: "German", level: "Fluent · C1", v: 90 },
     { name: "Ukrainian", level: "Mother tongue", v: 100 },
-    { name: "Japanese", level: "N5", v: 22 },
     { name: "Polish", level: "Intermediate", v: 55 },
   ],
 };
@@ -1225,18 +1247,18 @@ window.BIO = BIO;
   var PROJECTS = window.PROJECTS || [];
   var BIO = window.BIO || {};
   var YEAR = new Date().getFullYear();
-  // "established" is a fixed fact, not "the current year" — matches the
-  // earliest year already shown on this page (the hero dimline's "2019 —
-  // {YEAR}" span, BIO.experience). Unlike YEAR above, this must NOT be
-  // computed from Date(), or the badge silently claims a new founding year
-  // every January.
-  var EST_YEAR = 2019;
-
+  // Decorative, so it is hidden from screen readers — the <li> carries the
+  // meaning. A character rather than the old drawn tick, so it cannot do the
+  // stroke-on-scroll animation; the list item still fades in via .reveal.
+  var BULLET = '<span class="bullet" aria-hidden="true">•</span>';
   // Contact details are base64 in data.js and assembled here at runtime, so
   // the plain email/phone never appear in the static HTML that address-
   // harvesting bots scrape. The links are assembled on click (see wire()).
   function b64(s) { try { return atob(s); } catch (e) { return s || ""; } }
   var EMAIL = b64(BIO.email64), PHONE = b64(BIO.phone64);
+  // Optional second line — absent from BIO means the chip and row simply
+  // never render, so the markup below needs no other guard.
+  var PHONE_UA = BIO.phoneUa64 ? b64(BIO.phoneUa64) : "";
 
   var SECTIONS = [
     { id: "about", label: "About" },
@@ -1281,10 +1303,6 @@ window.BIO = BIO;
         '<path pathLength="1" d="M3 25 C 16 26, 34 22, 49 9"/>' +
         '<path pathLength="1" style="--d:280ms" d="M38 6 C 43 7, 47 8, 50 8 ' +
         'C 50 12, 49 16, 47 20"/></svg>';
-    },
-    tick: function () {
-      return '<svg class="doodle draw doodle--thin tick" viewBox="0 0 20 18" aria-hidden="true">' +
-        '<path pathLength="1" d="M2 9 C 4 11, 6 13, 8 15 C 11 10, 14 5, 18 2"/></svg>';
     },
     // dimension line with end ticks + arrowheads (architect's measure)
     dim: function (cls) {
@@ -1397,8 +1415,7 @@ window.BIO = BIO;
   function hero() {
     return '<section class="hero" id="top">' +
       '<div class="kicker">' +
-      '<span class="t-mono-sm">Architecture · BIM coordination · ' + esc(BIO.location) + '</span>' +
-      '<span class="t-hand t-hand--ink kicker-est">est. ' + esc(EST_YEAR) + '</span></div>' +
+      '<span class="t-mono-sm">Architecture</span></div>' +
 
       '<div class="h1-wrap reveal">' +
       '<h1>' + esc(BIO.name) + '</h1>' +
@@ -1406,15 +1423,22 @@ window.BIO = BIO;
       '<div class="h1-under">' + D.underline() + '</div>' +
       '</div>' +
 
-      '<p class="lede reveal" style="--d:120ms"><b>Architect MA, registered with AKNW Germany.</b> ' +
-      'Working between design intent and the construction site — currently <b>Architect &amp; BIM Coordinator at Cross Architecture</b> in Aachen, ' +
-      'leading facade and roof design on an adaptive-reuse project in Bochum.</p>' +
+      '<p class="lede reveal" style="--d:120ms"><b>Architect (M.A.), registered with the AKNW (Germany)</b>, ' +
+      'with seven years of experience in public and residential buildings of varying scale and complexity. ' +
+      'Focused on environmental sustainability and design that carries through from sketch to site — ' +
+      'with past roles at <b>Cross Architecture</b> in Aachen and <b>Störmer Murphy and Partners</b> in Hamburg.</p>' +
+
+      // Lifted out of the lede sentence, where it was the last few words of a
+      // long paragraph and read as a footnote. It reuses the project cards'
+      // red stamp — the page already uses that mark for "here is this thing's
+      // status", which is exactly what this is.
+      '<div class="avail reveal" style="--d:170ms"><span class="stamp stamp--avail">Open to relocation</span></div>' +
 
       '<div class="facts reveal" style="--d:220ms">' +
       '<a class="hd-box wiggle js-mail" href="#">' + esc(EMAIL) + '</a>' +
       '<a class="hd-box wiggle js-tel" href="#">' + esc(PHONE) + '</a>' +
+      (PHONE_UA ? '<a class="hd-box wiggle js-tel" href="#">' + esc(PHONE_UA) + '</a>' : "") +
       chip("https://" + BIO.linkedin, "LinkedIn ↗", true) +
-      '<span class="hd-box">' + esc(BIO.location) + '</span>' +
       '</div>' +
 
       '<div class="dimline hero-dim reveal" style="--d:320ms">' +
@@ -1436,13 +1460,13 @@ window.BIO = BIO;
 
   function about() {
     return '<section class="section" id="about">' +
-      sectionHead("§ 01 · About", "Restrained, precise work — at every scale.", "01 / 04") +
+      sectionHead("§ 01 · About", "Considered architecture between building, landscape, and memory", "01 / 04") +
       '<div class="about-grid">' +
       '<div class="lhs reveal">' +
       '<figure class="portrait-fig">' +
       '<span class="tape tape--tl"></span><span class="tape tape--tr"></span>' +
       '<img src="assets/portrait.jpg" alt="' + attr(BIO.name) + '" width="1080" height="1440" loading="lazy" decoding="async">' +
-      '<figcaption class="drop-cap"><span>Portrait</span><span>' + esc(BIO.location) + ' · ' + esc(YEAR) + '</span></figcaption>' +
+      '<figcaption class="drop-cap"><span>Portrait</span></figcaption>' +
       '</figure>' +
       '<div class="portrait-anno">' + D.arrow("doodle--ink") + '<span class="t-hand t-hand--ink">hello!</span></div>' +
       '</div>' +
@@ -1478,14 +1502,14 @@ window.BIO = BIO;
 
     var feats = '<div class="project-features"><div class="t-mono-sm">— Key features</div>' +
       '<ul>' + (p.features || []).map(function (f) {
-        return '<li class="reveal">' + D.tick() + '<span>' + esc(f) + '</span></li>';
+        return '<li class="reveal">' + BULLET + '<span>' + esc(f) + '</span></li>';
       }).join("") + '</ul></div>';
 
     var interventions = "";
     if (p.interventions) {
       interventions = '<div class="project-features interventions"><div class="t-mono-sm">— Five interventions</div>' +
         '<ul>' + p.interventions.map(function (it) {
-          return '<li class="reveal">' + D.tick() + '<span><b>' + esc(it.name) + '</b> — ' + esc(it.note) + '</span></li>';
+          return '<li class="reveal">' + BULLET + '<span><b>' + esc(it.name) + '</b> — ' + esc(it.note) + '</span></li>';
         }).join("") + '</ul></div>';
     }
 
@@ -1616,9 +1640,9 @@ window.BIO = BIO;
   function contact() {
     var rows = [
       ["Email", '<a href="#" class="js-mail">' + esc(EMAIL) + '</a>', "email"],
-      ["Phone", '<a href="#" class="js-tel">' + esc(PHONE) + '</a>', "phone"],
+      ["Phone · DE", '<a href="#" class="js-tel">' + esc(PHONE) + '</a>', "phone"],
+      PHONE_UA ? ["Phone · UA", '<a href="#" class="js-tel">' + esc(PHONE_UA) + '</a>', "phone"] : null,
       ["LinkedIn", '<a href="https://' + attr(BIO.linkedin) + '" target="_blank" rel="noreferrer">mariya-benovska ↗</a>', ""],
-      ["Studio", '<span>Aachen · NRW · Germany</span>', ""],
     ];
     return '<section class="section contact" id="contact">' +
       '<h2 class="sr-only">Contact</h2>' +
@@ -1632,10 +1656,10 @@ window.BIO = BIO;
       '<a class="hd-box wiggle js-mail" href="#">Write to me ↗</a>' +
       D.arrow() + '<span class="t-hand">I reply within a day or two</span></div></div>' +
       '<div class="contact-list">' +
-      rows.map(function (r) {
+      rows.filter(Boolean).map(function (r) {
         var copy = r[2]
           ? '<button type="button" class="copy" data-ck="' + attr(r[2]) +
-            '" aria-label="Copy ' + (r[2] === "email" ? "email address" : "phone number") + '">copy</button>'
+            '" aria-label="Copy ' + attr(r[0]) + '">copy</button>'
           : '<span class="copy" aria-hidden="true">↗</span>';
         return '<div class="contact-row reveal"><span class="k">' + esc(r[0]) + '</span>' +
           '<span class="v">' + r[1] + '</span>' + copy + '</div>';
@@ -1745,16 +1769,45 @@ window.BIO = BIO;
     // (~0.9 MB/frame) and a retina desktop (~7 MB/frame). Budgeting bytes
     // keeps both honest: 80 frames held at desktop size would be >500 MB.
     var aspectH = 0.75;
+    var srcW = 0;   // natural pixel width of a frame, from the aspect numerator
     if (cfg.aspect) {
       var ap = String(cfg.aspect).split("/");
-      if (ap.length === 2 && +ap[0] > 0) aspectH = +ap[1] / +ap[0];
+      if (ap.length === 2 && +ap[0] > 0) { aspectH = +ap[1] / +ap[0]; srcW = +ap[0]; }
     }
-    var BUDGET = (lean ? 24 : 96) * 1024 * 1024;
-    var MAX_INFLIGHT = lean ? 3 : 6;
+    // Downscaling DURING decode is not free the way it looks: measured on
+    // these frames it costs 118ms/frame against 45ms decoding at natural
+    // size — the resize is nearly 3x the decode it rides along with, and
+    // resizeQuality makes no difference (low/medium/high all land at ~129ms),
+    // so it is the resampling path itself, not the filter.
+    //
+    // It only pays for itself when it actually saves real memory. Shrinking
+    // 1557 -> 1208 is a 22% reduction bought at 2.6x the decode time; the
+    // GPU does the same downscale at drawImage for +0.34ms/frame. So resize
+    // only past a threshold where the memory genuinely matters (phones, where
+    // decodeW is a third of source), and otherwise decode natural size.
+    var RESIZE_RATIO = 1.6;
+    function wantsResize() { return !srcW || decodeW * RESIZE_RATIO < srcW; }
+    // Width a cached frame actually occupies, which is decodeW only when the
+    // resize is on — otherwise the frames land at natural size.
+    function storedW() { return wantsResize() ? decodeW : Math.min(srcW || decodeW, 4096); }
+    function bmOpts() {
+      return wantsResize() ? { resizeWidth: decodeW, resizeQuality: "medium" } : null;
+    }
+    // Raised deliberately. Holding more frames decoded is the one way to make
+    // the scrub smoother that does NOT touch how a frame is rendered — same
+    // pixels, just more of them kept. The old 96MB held only 13 of 80 frames
+    // at full resolution, so any real scroll gesture landed outside the window
+    // and fell back to a stale frame.
+    var BUDGET = (lean ? 40 : 160) * 1024 * 1024;
+    var MAX_INFLIGHT = lean ? 4 : 8;
     var CACHE_MAX = 8;
     function sizeCache() {
-      var frameBytes = decodeW * Math.round(decodeW * aspectH) * 4;
-      CACHE_MAX = Math.max(6, Math.min(32, Math.floor(BUDGET / frameBytes)));
+      var sw = storedW();
+      var frameBytes = sw * Math.round(sw * aspectH) * 4;
+      // Ceiling is the sequence itself, not an arbitrary 32 — on smaller
+      // viewports the whole thing can stay resident, which removes eviction
+      // thrash entirely when scrubbing back and forth over the same range.
+      CACHE_MAX = Math.max(6, Math.min(n, Math.floor(BUDGET / frameBytes)));
     }
     sizeCache();
     var bmps = new Map();     // k -> ImageBitmap (or HTMLImageElement fallback)
@@ -1779,7 +1832,9 @@ window.BIO = BIO;
         var im = new Image();
         im.onload = function () {
           if (!canBitmap) return res(im);
-          createImageBitmap(im, { resizeWidth: decodeW, resizeQuality: "medium" })
+          var o = bmOpts();
+          if (!o) return createImageBitmap(im).then(res, function () { res(im); });
+          createImageBitmap(im, o)
             .then(res, function () { res(im); });   // options unsupported → full size
         };
         im.onerror = rej;
@@ -1793,7 +1848,9 @@ window.BIO = BIO;
         return fetch(u, { cache: "force-cache" })
           .then(function (r) { return r.ok ? r.blob() : Promise.reject(r.status); })
           .then(function (b) {
-            return createImageBitmap(b, { resizeWidth: decodeW, resizeQuality: "medium" })
+            var o = bmOpts();
+            if (!o) return createImageBitmap(b);
+            return createImageBitmap(b, o)
               .catch(function () { return createImageBitmap(b); }); // options unsupported
           })
           .catch(function () { return decodeViaImage(u); });  // blocked/failed fetch
@@ -1816,13 +1873,30 @@ window.BIO = BIO;
       }
     }
 
+    // The canvas is sized to the DISPLAY, once, and every frame is drawn to
+    // fill it. It must not track the bitmap's own size: LRTimelapse stabilises
+    // each frame independently, so the natural dimensions drift across the
+    // sequence (1557x1168 .. 1592x1194). Sizing to the bitmap therefore
+    // reassigned cv.width on nearly every frame once decoding stopped forcing
+    // a uniform width — and every reassignment clears the canvas, which is a
+    // blank flash between frames. Aspect drift across the set is 1.3330 vs
+    // 1.3333, so filling a fixed box is visually identical to letterboxing it.
+    function sizeCanvas() {
+      var w = Math.max(1, Math.round(decodeW));
+      var h = Math.max(1, Math.round(w * aspectH));
+      if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; cur = -1; }
+    }
+
     function paint(k) {
       var bm = bmps.get(k);
       if (!bm) return false;
       var w = bm.width || bm.naturalWidth, h = bm.height || bm.naturalHeight;
       if (!w || !h) return false;
-      if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
-      cx.drawImage(bm, 0, 0, w, h);
+      if (!cv.width || !cv.height) sizeCanvas();
+      // Scale to the canvas at draw time. The GPU does this downscale for
+      // ~0.3ms/frame, against the ~73ms/frame it cost to do the same shrink
+      // during decode.
+      cx.drawImage(bm, 0, 0, w, h, 0, 0, cv.width, cv.height);
       cur = k;
       return true;
     }
@@ -1863,9 +1937,14 @@ window.BIO = BIO;
     // Fetch a window around the playhead, biased the way the scrub is
     // moving, so the frames arriving are the ones about to be needed.
     function pump() {
-      for (var d = 0; d <= 8 && pending.size < MAX_INFLIGHT; d++) {
+      // Reach as far as the cache can actually hold, biased in the scrub
+      // direction. The old fixed ±8 was narrower than a single wheel tick
+      // (~10 frames), so the playhead routinely landed outside the decoded
+      // window no matter how fast the decoder ran.
+      var half = Math.max(4, CACHE_MAX >> 1);
+      for (var d = 0; d <= half && pending.size < MAX_INFLIGHT; d++) {
         request(want + d * scrubDir);
-        if (d && d <= 2) request(want - d * scrubDir);
+        if (d) request(want - d * scrubDir);
       }
     }
     var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1883,15 +1962,24 @@ window.BIO = BIO;
       // the pixels are actually freed) and let the window around the playhead
       // refill at the right size.
       var w = calcDecodeW();
-      if (Math.abs(w - decodeW) / decodeW > 0.2) {
-        decodeW = w;
+      // Compare the size frames are CACHED at, not the display size. With the
+      // resize off, decodeW can drift a long way without changing a single
+      // cached pixel, and flushing then would throw away a correct cache and
+      // re-decode the whole window for nothing.
+      var before = storedW();
+      var prevW = decodeW;
+      decodeW = w;
+      if (storedW() !== before) {
         gen++;              // invalidates decodes already in flight
         sizeCache();
         bmps.forEach(function (bm) { if (bm && bm.close) bm.close(); });
         bmps.clear();
         cur = -1;
         pump();
+      } else if (w !== prevW) {
+        sizeCache();        // same pixels, but the budget math still moves
       }
+      sizeCanvas();
     }
     measure();
     // The stage's final width can arrive after init and after load (fonts,
@@ -1910,7 +1998,12 @@ window.BIO = BIO;
         if (reduced) return;
         var r = figure.getBoundingClientRect();
         var vh = window.innerHeight;
-        if (r.top < vh * 1.5 && r.bottom > -vh * 0.5) pump();
+        // Start decoding well before the sequence is reached. Each frame costs
+        // ~150ms at full resolution, so the head start is what decides whether
+        // the opening of the scrub — the part every visitor sees — is already
+        // decoded or is being chased. Only affects when work begins; the scroll
+        // mapping and the frames themselves are untouched.
+        if (r.top < vh * 3 && r.bottom > -vh * 0.5) pump();
         var p = Math.min(1, Math.max(0, (stickyTopPx - r.top) / travel));
         // Freeze the drafting grid while scrubbing WITHOUT per-frame JS (which
         // jitters against compositor scroll): flip the background to viewport-
@@ -2195,7 +2288,13 @@ window.BIO = BIO;
       a.addEventListener("click", function (e) { e.preventDefault(); location.href = "mai" + "lto:" + EMAIL; });
     });
     document.querySelectorAll(".js-tel").forEach(function (a) {
-      a.addEventListener("click", function (e) { e.preventDefault(); location.href = "te" + "l:" + PHONE.replace(/\s/g, ""); });
+      a.addEventListener("click", function (e) {
+        e.preventDefault();
+        // Read the number off the link itself rather than a single shared
+        // constant, so every tel link dials the number it actually shows.
+        var n = (a.textContent || "").replace(/\s/g, "");
+        location.href = "te" + "l:" + (n || PHONE.replace(/\s/g, ""));
+      });
     });
     // copy buttons (value assembled from key, never stored in a DOM attribute).
     // navigator.clipboard only exists in secure contexts (https/localhost) —
@@ -2216,7 +2315,9 @@ window.BIO = BIO;
     }
     document.querySelectorAll("[data-ck]").forEach(function (b) {
       b.addEventListener("click", function () {
-        copyText(b.getAttribute("data-ck") === "email" ? EMAIL : PHONE).then(function () {
+        var row = b.closest(".contact-row");
+        var shown = row && row.querySelector(".v") ? row.querySelector(".v").textContent.trim() : "";
+        copyText(shown || (b.getAttribute("data-ck") === "email" ? EMAIL : PHONE)).then(function () {
           var prev = b.textContent; b.textContent = "copied!"; b.classList.add("did");
           setTimeout(function () { b.textContent = prev; b.classList.remove("did"); }, 1400);
         }, function () {});
